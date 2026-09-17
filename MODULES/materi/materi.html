@@ -1,0 +1,74 @@
+<div class="agenda-widget-card" style="border-left: 4px solid var(--maroon);">
+  <div class="agenda-widget-header">
+    <div class="agenda-brand">
+      <div class="agenda-icon-box" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;">
+        <i data-lucide="book-open"></i>
+      </div>
+      <div>
+        <h3>Pustaka & Materi PMR</h3>
+        <p>Kumpulan modul belajar, slide presentasi, dan tautan dokumen resmi PMR SPADAN.</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Tombol Tambah Materi: Khusus Admin & Pengurus Tertentu -->
+      <button id="btn-tambah-materi" class="btn-agenda-action" onclick="window.openTambahMateriModal()" style="display: none;">
+        <i data-lucide="plus"></i> Tambah Materi
+      </button>
+      <button onclick="window.tutupMateriViewer()" style="background: none; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; color: #64748b; cursor: pointer; font-size: 11px; font-weight: 700;">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <div style="margin: 12px 0 6px 0;">
+    <input type="text" id="filter-materi-search" placeholder="Cari judul materi..." oninput="window.renderMateriList()" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; outline: none; background: #fff;" />
+  </div>
+
+  <!-- Kontainer Kartu Materi -->
+  <div id="materi-items-container" class="agenda-list-grid" style="margin-top: 10px;">
+    <div style="text-align: center; color: #94a3b8; padding: 25px 10px; font-size: 12px;">
+      Memuat daftar materi...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH MATERI -->
+<div class="modal-backdrop" id="modal-tambah-materi" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+  <div class="modal-card" style="background: white; width: 100%; max-width: 480px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div style="background: var(--maroon); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="book-open"></i>
+        <span>Tambah Tautan Materi Baru</span>
+      </h3>
+      <button onclick="window.closeTambahMateriModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+    </div>
+    <form id="form-tambah-materi" onsubmit="window.handleTambahMateriSubmit(event)" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Judul Materi *</label>
+        <input type="text" id="materi-judul" placeholder="Contoh: Modul Pertolongan Pertama Bencana" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tautan URL Materi (Google Drive / Link Lainnya) *</label>
+        <input type="url" id="materi-url" placeholder="https://drive.google.com/..." required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Deskripsi Singkat (Opsional)</label>
+        <textarea id="materi-deskripsi" rows="2" placeholder="Ringkasan isi materi atau instruksi membaca..." style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;"></textarea>
+      </div>
+
+      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="materi-pin" style="width: 16px; height: 16px; cursor: pointer;" />
+        <label for="materi-pin" style="font-size: 11.5px; font-weight: 600; color: #334155; cursor: pointer;">
+          Sematkan (Pin) materi ini di urutan paling atas
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+        <button type="button" onclick="window.closeTambahMateriModal()" style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; background: #e2e8f0; cursor: pointer;">Batal</button>
+        <button type="submit" id="btn-save-materi" style="padding: 8px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; background: var(--maroon); color: white; cursor: pointer;">Simpan Materi</button>
+      </div>
+    </form>
+  </div>
+</div>

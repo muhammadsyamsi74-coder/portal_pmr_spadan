@@ -1,0 +1,126 @@
+<div class="agenda-widget-card">
+  <div class="agenda-widget-header">
+    <div class="agenda-brand">
+      <div class="agenda-icon-box">
+        <i data-lucide="calendar-days"></i>
+      </div>
+      <div>
+        <h3>Kalender & Agenda Kegiatan Tahunan</h3>
+        <p>Rencana program kerja, jadwal latihan, tugas, dan pengumuman PMR.</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Tombol Tambah Agenda: Muncul Khusus Admin & Pengurus -->
+      <button id="btn-tambah-agenda" class="btn-agenda-action" onclick="window.openTambahAgendaModal()" style="display: none;">
+        <i data-lucide="calendar-plus"></i> Tambah Agenda
+      </button>
+      <button onclick="window.tutupAgendaViewer()" style="background: none; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; color: #64748b; cursor: pointer; font-size: 11px; font-weight: 700;">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Kategori Agenda -->
+  <div class="agenda-filter-row">
+    <div class="agenda-filter-chips">
+      <button class="chip-filter active" onclick="window.filterAgendaKategori('SEMUA')">Semua</button>
+      <button class="chip-filter" onclick="window.filterAgendaKategori('Pengumuman')">Pengumuman</button>
+      <button class="chip-filter" onclick="window.filterAgendaKategori('Latihan Rutin')">Latihan</button>
+      <button class="chip-filter" onclick="window.filterAgendaKategori('Tugas Upacara')">Upacara</button>
+      <button class="chip-filter" onclick="window.filterAgendaKategori('Lomba PMR')">Lomba</button>
+    </div>
+    <input type="month" id="filter-agenda-bulan" class="agenda-month-picker" onchange="window.renderAgendaList()" />
+  </div>
+
+  <!-- Kontainer Daftar Agenda -->
+  <div id="agenda-items-container" class="agenda-list-grid">
+    <div style="text-align: center; color: #94a3b8; padding: 25px 10px; font-size: 12px;">
+      Memuat agenda kegiatan...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH / EDIT AGENDA KEGIATAN -->
+<div class="modal-backdrop" id="modal-tambah-agenda" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+  <div class="modal-card" style="background: white; width: 100%; max-width: 500px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div style="background: var(--maroon); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="calendar"></i>
+        <span>Tambah Agenda Kegiatan</span>
+      </h3>
+      <button onclick="window.closeTambahAgendaModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+    </div>
+    <form id="form-tambah-agenda" onsubmit="window.handleTambahAgendaSubmit(event)" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 11px; max-height: 82vh; overflow-y: auto;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Nama Kegiatan / Judul Pengumuman *</label>
+        <input type="text" id="agenda-judul" placeholder="Contoh: Latihan Rutin Pertolongan Pertama" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Jenis Kegiatan *</label>
+          <select id="agenda-kategori" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+            <option value="Pengumuman">Pengumuman</option>
+            <option value="Latihan Rutin">Latihan Rutin</option>
+            <option value="Tugas Upacara">Tugas Upacara</option>
+            <option value="Bakti Sosial">Bakti Sosial</option>
+            <option value="Lomba PMR">Lomba PMR</option>
+            <option value="Diklat/Pelatihan">Diklat/Pelatihan</option>
+            <option value="Rapat Organisasi">Rapat Organisasi</option>
+            <option value="Peringatan Hari Besar">Peringatan Hari Besar</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Prioritas *</label>
+          <select id="agenda-prioritas" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+            <option value="Normal">Normal</option>
+            <option value="Penting">Penting</option>
+            <option value="Sangat Penting">Sangat Penting</option>
+            <option value="Wajib">Wajib</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tanggal Mulai *</label>
+          <input type="date" id="agenda-tgl-mulai" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tanggal Selesai (Opsional)</label>
+          <input type="date" id="agenda-tgl-selesai" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Waktu Kegiatan</label>
+          <input type="text" id="agenda-waktu" placeholder="Contoh: 08:00 - 11:30 WITA" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Lokasi / Tempat</label>
+          <input type="text" id="agenda-lokasi" placeholder="Contoh: Lapangan Utama / Ruang UKS" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Keterangan / Rincian Kegiatan</label>
+        <textarea id="agenda-keterangan" rows="2" placeholder="Catatan penting, perlengkapan yang dibawa, atau seragam..." style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;"></textarea>
+      </div>
+
+      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="agenda-tampilkan-dashboard" style="width: 16px; height: 16px; cursor: pointer;" />
+        <label for="agenda-tampilkan-dashboard" style="font-size: 11.5px; font-weight: 600; color: #334155; cursor: pointer;">
+          Tampilkan kegiatan ini di halaman Dashboard utama
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+        <button type="button" onclick="window.closeTambahAgendaModal()" style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; background: #e2e8f0; cursor: pointer;">Batal</button>
+        <button type="submit" id="btn-save-agenda" style="padding: 8px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; background: var(--maroon); color: white; cursor: pointer;">Simpan Agenda</button>
+      </div>
+    </form>
+  </div>
+</div>

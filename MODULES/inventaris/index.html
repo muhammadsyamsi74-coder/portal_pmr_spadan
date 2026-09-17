@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventaris & Fasilitas UKS - PMR SPADAN</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="inventaris.css" />
+</head>
+<body>
+
+  <!-- FLOATING HEADER -->
+  <header class="module-header">
+    <div class="header-left">
+      <button class="btn-back-portal" onclick="window.tutupModulInventaris()" title="Tutup Modul">
+        <i data-lucide="x"></i>
+        <span>Tutup</span>
+      </button>
+      <div class="brand-divider"></div>
+      <div class="brand-info">
+        <h1>INVENTARIS & UKS</h1>
+        <p>PMR SPADAN BALIKPAPAN</p>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-text">
+          <span id="inv-user-name" class="name">Tamu</span>
+          <span id="inv-user-role" class="role">Mode Baca</span>
+        </div>
+        <div class="user-avatar" id="inv-user-avatar">?</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <div class="workspace-container">
+    
+    <!-- SUB-NAVIGASI TAB RESPONSIF -->
+    <nav class="subtab-bar" id="inv-subtab-bar">
+      <button class="subtab-btn active" onclick="window.switchInvTab('logistik')">
+        <i data-lucide="boxes"></i>
+        <span class="tab-label-full">Logistik & Obat</span>
+        <span class="tab-label-short">Logistik</span>
+      </button>
+      <button class="subtab-btn" onclick="window.switchInvTab('bangunan')">
+        <i data-lucide="building-2"></i>
+        <span class="tab-label-full">Fasilitas Ruang UKS</span>
+        <span class="tab-label-short">Fasilitas</span>
+      </button>
+      <!-- Tombol Usulan: Dikontrol oleh inventaris.js (disembunyikan untuk guest/alumni/non-aktif) -->
+      <button class="subtab-btn" id="subtab-btn-usulan" onclick="window.switchInvTab('usulan')" style="display: none;">
+        <i data-lucide="file-plus-2"></i>
+        <span class="tab-label-full">Usulan Pengadaan</span>
+        <span class="tab-label-short">Usulan</span>
+      </button>
+    </nav>
+
+    <!-- BANNER GUEST / ALUMNI / NON-AKTIF -->
+    <div id="guest-alert-banner" class="guest-banner" style="display: none;">
+      <i data-lucide="info"></i>
+      <span id="guest-alert-text">Anda sedang dalam <strong>Mode Tamu / Akses Terbatas</strong>. Informasi logistik hanya menampilkan foto, nama, dan jumlah stok.</span>
+    </div>
+
+    <!-- ================= TAB 1: LOGISTIK & OBAT ================= -->
+    <section id="tab-content-logistik" class="tab-pane active">
+      <div class="toolbar-box">
+        <div class="search-group">
+          <i data-lucide="search"></i>
+          <input type="text" id="inv-search-input" placeholder="Cari nama barang..." oninput="window.filterInventarisList()" />
+        </div>
+
+        <div class="filter-group">
+          <!-- Filter Kepemilikan & Kondisi disembunyikan untuk guest/alumni/non-aktif -->
+          <select id="inv-filter-kepemilikan" class="restricted-feature" onchange="window.filterInventarisList()">
+            <option value="SEMUA">Semua Kepemilikan</option>
+            <option value="UKS">Aset UKS</option>
+            <option value="PMR">Aset PMR</option>
+            <option value="PINJAMAN_PRIBADI">Pinjaman Pribadi</option>
+          </select>
+
+          <select id="inv-filter-kondisi" class="restricted-feature" onchange="window.filterInventarisList()">
+            <option value="SEMUA">Semua Kondisi</option>
+            <option value="Baik">Baik</option>
+            <option value="Rusak Ringan">Rusak Ringan</option>
+            <option value="Rusak Berat">Rusak Berat</option>
+            <option value="Habis/Hilang/Tidak Ada">Habis / Hilang</option>
+          </select>
+
+          <button id="btn-tambah-barang" class="btn-primary-action" onclick="window.openTambahBarangModal()" style="display: none;">
+            <i data-lucide="plus"></i>
+            <span>Tambah Barang</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead id="thead-inventaris">
+              <!-- Header tabel dirender dinamis sesuai peran pengguna -->
+            </thead>
+            <tbody id="tbody-inventaris">
+              <tr><td colspan="7" class="loading-state">Memuat data inventaris...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: FASILITAS RUANG UKS ================= -->
+    <section id="tab-content-bangunan" class="tab-pane">
+      <div class="toolbar-box" style="margin-bottom: 15px;">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 800; color: var(--maroon);">Profil & Kondisi Bangunan UKS</h2>
+          <p style="font-size: 11.5px; color: var(--text-muted);">Standarisasi fisik ruang kesehatan sekolah SMPN 8 Balikpapan.</p>
+        </div>
+        <button id="btn-edit-bangunan" class="btn-primary-action" onclick="window.openEditBangunanModal()" style="display:none;">
+          <i data-lucide="edit-3"></i>
+          <span>Perbarui Profil Ruangan</span>
+        </button>
+      </div>
+
+      <div class="building-layout">
+        <!-- Kolom Kiri: Foto Ruangan & Dimensi Ruang -->
+        <div class="building-left-col">
+          <div class="info-card">
+            <div class="card-title-bar">
+              <i data-lucide="camera"></i>
+              <h3>Dokumentasi Ruangan</h3>
+            </div>
+            <div class="room-photo-frame" id="room-photo-container">
+              <div class="no-photo"><i data-lucide="image"></i><span>Belum ada foto ruangan</span></div>
+            </div>
+            <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); line-height: 1.4;" id="room-notes">
+              <em>Belum ada catatan pemeliharaan.</em>
+            </div>
+          </div>
+
+          <div class="info-card" style="margin-top: 16px;">
+            <div class="card-title-bar">
+              <i data-lucide="ruler"></i>
+              <h3>Dimensi & Kapasitas</h3>
+            </div>
+            <div class="spec-table-list" id="building-specs">
+              <!-- Render Specs -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Kolom Kanan: Kondisi Fisik & Sanitasi -->
+        <div class="building-right-col">
+          <div class="info-card">
+            <div class="card-title-bar">
+              <i data-lucide="activity"></i>
+              <h3>Kondisi Komponen Bangunan</h3>
+            </div>
+            <div class="spec-table-list" id="building-condition-components">
+              <!-- Render Kondisi Dinding, Plafon, Lantai, Pintu -->
+            </div>
+          </div>
+
+          <div class="info-card" style="margin-top: 16px;">
+            <div class="card-title-bar">
+              <i data-lucide="droplets"></i>
+              <h3>Fasilitas Kebersihan & Lingkungan</h3>
+            </div>
+            <div class="sanitasi-grid" id="building-sanitation-cards">
+              <!-- Render Checklist Sanitasi -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: USULAN PENGADAAN (KHUSUS ANGGOTA AKTIF, PENGURUS, ADMIN) ================= -->
+    <section id="tab-content-usulan" class="tab-pane">
+      <div class="toolbar-box">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 800; color: var(--maroon);">Usulan Pengadaan Barang & Fasilitas</h2>
+          <p style="font-size: 11.5px; color: var(--text-muted);">Sistem pengajuan kebutuhan logistik. Admin/Pembina dapat langsung menanggapi status di bawah.</p>
+        </div>
+        <button id="btn-ajukan-usulan" class="btn-primary-action" onclick="window.openUsulanModal()">
+          <i data-lucide="file-plus-2"></i>
+          <span>Ajukan Usulan Baru</span>
+        </button>
+      </div>
+
+      <!-- Filter Status Usulan -->
+      <div class="usulan-status-filters" id="usulan-filter-bar">
+        <button class="status-tab-btn active" onclick="window.filterUsulanStatus('SEMUA')">Semua</button>
+        <button class="status-tab-btn" onclick="window.filterUsulanStatus('Menunggu')">Menunggu</button>
+        <button class="status-tab-btn" onclick="window.filterUsulanStatus('Disetujui')">Disetujui</button>
+        <button class="status-tab-btn" onclick="window.filterUsulanStatus('Terealisasi')">Terealisasi</button>
+        <button class="status-tab-btn" onclick="window.filterUsulanStatus('Ditolak')">Ditolak</button>
+      </div>
+
+      <div class="table-card" style="margin-top: 12px;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Foto</th>
+                <th>Barang yang Diusulkan</th>
+                <th style="width: 80px; text-align: center;">Jumlah</th>
+                <th>Alasan & Urgensi</th>
+                <th>Status & Tanggapan Pembina</th>
+                <th style="width: 140px; text-align: center;">Aksi & Tanggapan</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-usulan">
+              <tr><td colspan="6" class="loading-state">Memuat data usulan...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL: PREVIEW FOTO & DETAIL KHUSUS BARANG -->
+  <div class="modal-backdrop" id="modal-detail-barang">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="detail-modal-nama-barang">Detail Barang</h3>
+        <button class="modal-close" onclick="window.closeDetailBarangModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <div style="width: 100%; max-height: 250px; background: #f1f5f9; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; margin-bottom: 12px;">
+          <img id="detail-modal-img" src="" alt="Foto Barang" style="max-width: 100%; max-height: 250px; object-fit: contain; display: block;" />
+        </div>
+        <div id="detail-modal-info" class="spec-table-list" style="font-size: 12.5px;">
+          <!-- Diisi dinamis oleh inventaris.js -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="window.closeDetailBarangModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TAMBAH / EDIT BARANG (TAB 1) -->
+  <div class="modal-backdrop" id="modal-barang">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-barang-title">Tambah Data Barang</h3>
+        <button class="modal-close" onclick="window.closeBarangModal()">&times;</button>
+      </div>
+      <form id="form-barang" onsubmit="window.handleBarangSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="form-barang-id" />
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nama Barang *</label>
+              <input type="text" id="form-nama-barang" placeholder="Contoh: Kasa Steril 10cm" required onblur="window.cekDuplikasiBarang()" />
+            </div>
+            <div class="form-group">
+              <label>Kategori *</label>
+              <select id="form-kategori" required>
+                <option value="Obat/Habis Pakai">Obat / Habis Pakai</option>
+                <option value="Alat Medis">Alat Medis (Tandu, Bidai, dll)</option>
+                <option value="Logistik">Logistik / Penunjang</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Entitas Kepemilikan *</label>
+              <select id="form-kepemilikan" required onchange="window.togglePemilikPribadiField()">
+                <option value="UKS">Aset UKS (Sekolah)</option>
+                <option value="PMR">Aset PMR SPADAN</option>
+                <option value="PINJAMAN_PRIBADI">Pinjaman Pribadi (Sementara)</option>
+              </select>
+            </div>
+            <div class="form-group" id="group-pemilik-pribadi" style="display: none;">
+              <label>Nama Pemilik Barang *</label>
+              <input type="text" id="form-pemilik-pribadi" placeholder="Contoh: Pak Syamsi" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Jumlah Stok *</label>
+              <input type="number" id="form-jumlah" min="0" value="1" required />
+            </div>
+            <div class="form-group">
+              <label>Satuan Barang *</label>
+              <input type="text" id="form-satuan" placeholder="Kotak, Botol, Pcs, Roll" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Lokasi Penyimpanan / Rak *</label>
+              <input type="text" id="form-lokasi-rak" placeholder="Contoh: Lemari Kaca Rak 2" required />
+            </div>
+            <div class="form-group">
+              <label>Kondisi Fisik *</label>
+              <select id="form-kondisi" required>
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+                <option value="Tidak Dapat Digunakan">Tidak Dapat Digunakan</option>
+                <option value="Habis/Hilang/Tidak Ada">Habis/Hilang/Tidak Ada</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tanggal Kedaluwarsa (Khusus Obat)</label>
+              <input type="date" id="form-kedaluwarsa" />
+            </div>
+            <div class="form-group">
+              <label>Foto Barang (Opsional)</label>
+              <input type="file" id="form-foto" accept="image/*" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Catatan / Keterangan</label>
+            <textarea id="form-catatan" rows="2" placeholder="Catatan tambahan spesifikasi atau kelengkapan barang..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="window.closeBarangModal()">Batal</button>
+          <button type="submit" class="btn-submit" id="btn-save-barang">Simpan Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PERBARUI PROFIL RUANG UKS (TAB 2) -->
+  <div class="modal-backdrop" id="modal-edit-bangunan">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Perbarui Profil & Fasilitas Ruang UKS</h3>
+        <button class="modal-close" onclick="window.closeEditBangunanModal()">&times;</button>
+      </div>
+      <form id="form-edit-bangunan" onsubmit="window.handleUpdateBangunanSubmit(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nama Ruangan</label>
+              <input type="text" id="edit-room-name" required />
+            </div>
+            <div class="form-group">
+              <label>Lokasi Lantai</label>
+              <input type="text" id="edit-room-floor" placeholder="Contoh: Lantai 1 Gedung A" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Panjang (Meter) *</label>
+              <input type="number" step="0.1" id="edit-room-length" required />
+            </div>
+            <div class="form-group">
+              <label>Lebar (Meter) *</label>
+              <input type="number" step="0.1" id="edit-room-width" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Kapasitas Tempat Tidur (Unit) *</label>
+              <input type="number" id="edit-room-beds" min="0" required />
+            </div>
+            <div class="form-group">
+              <label>Pemisah Pasien Gender (Tirai)</label>
+              <select id="edit-room-gender-divider">
+                <option value="true">Tersedia (Tirai Pembatas Ada)</option>
+                <option value="false">Tidak Ada</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Kondisi Lantai</label>
+              <select id="edit-kondisi-lantai">
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Kondisi Dinding</label>
+              <select id="edit-kondisi-dinding">
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Kondisi Plafon / Atap</label>
+              <select id="edit-kondisi-plafon">
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Kondisi Pintu & Jendela</label>
+              <select id="edit-kondisi-pintu">
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Wastafel & Air Mengalir</label>
+              <select id="edit-room-wastafel">
+                <option value="true">Ada & Berfungsi</option>
+                <option value="false">Tidak Ada / Rusak</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Toilet Dalam Ruangan</label>
+              <select id="edit-room-toilet">
+                <option value="true">Ada</option>
+                <option value="false">Tidak Ada</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ventilasi Udara</label>
+              <input type="text" id="edit-room-vent" placeholder="Contoh: Baik / Jendela Lebar" />
+            </div>
+            <div class="form-group">
+              <label>Pencahayaan Ruang</label>
+              <input type="text" id="edit-room-light" placeholder="Contoh: Terang Alami" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Unggah Foto Ruangan Baru</label>
+            <input type="file" id="edit-room-photo-file" accept="image/*" />
+          </div>
+
+          <div class="form-group">
+            <label>Catatan Pemeliharaan / Perbaikan</label>
+            <textarea id="edit-room-notes" rows="2" placeholder="Catatan kebutuhan renovasi atau kondisi ruangan..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="window.closeEditBangunanModal()">Batal</button>
+          <button type="submit" class="btn-submit" id="btn-save-bangunan">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AJUKAN USULAN BARU (TAB 3) -->
+  <div class="modal-backdrop" id="modal-usulan">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Pengajuan Usulan Pengadaan Barang</h3>
+        <button class="modal-close" onclick="window.closeUsulanModal()">&times;</button>
+      </div>
+      <form id="form-usulan" onsubmit="window.handleUsulanSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nama Barang yang Diusulkan *</label>
+            <input type="text" id="usulan-nama" placeholder="Contoh: Tabung Oksigen Portable" required />
+          </div>
+          <div class="form-group">
+            <label>Jumlah Kebutuhan (Unit/Pcs) *</label>
+            <input type="number" id="usulan-jumlah" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label>Foto Referensi Barang (Opsional)</label>
+            <input type="file" id="usulan-foto-file" accept="image/*" />
+          </div>
+          <div class="form-group">
+            <label>Alasan Kebutuhan & Urgensi Pengadaan *</label>
+            <textarea id="usulan-alasan" rows="3" placeholder="Jelaskan kebutuhan pengadaan barang ini..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="window.closeUsulanModal()">Batal</button>
+          <button type="submit" class="btn-submit" id="btn-save-usulan">Kirim Usulan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TANGGAPAN PEMBINA / ADMIN (TAB 3) -->
+  <div class="modal-backdrop" id="modal-tanggapi-usulan">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Tanggapi Usulan Pengadaan</h3>
+        <button class="modal-close" onclick="window.closeTanggapiModal()">&times;</button>
+      </div>
+      <form id="form-tanggapi-usulan" onsubmit="window.handleTanggapiSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="tanggapi-usulan-id" />
+          <div style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
+            <strong id="tanggapi-nama-barang" style="color:var(--maroon); font-size:14px;">Nama Barang</strong>
+            <p id="tanggapi-alasan-barang" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></p>
+          </div>
+
+          <div class="form-group" style="margin-top: 10px;">
+            <label>Keputusan Status Usulan *</label>
+            <select id="tanggapi-status" required>
+              <option value="Disetujui">Setujui Usulan (Disetujui)</option>
+              <option value="Terealisasi">Terealisasi (Barang Telah Dibeli/Tersedia)</option>
+              <option value="Ditolak">Tolak Usulan (Ditolak)</option>
+              <option value="Menunggu">Kembalikan ke Menunggu</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Catatan / Instruksi Pembina *</label>
+            <textarea id="tanggapi-catatan" rows="3" placeholder="Contoh: Disetujui, akan dibelanjakan memakai dana BOS minggu depan..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="window.closeTanggapiModal()">Batal</button>
+          <button type="submit" class="btn-submit" id="btn-submit-tanggapan">Simpan Keputusan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../../JS/supabase.js"></script>
+  <script src="inventaris.js"></script>
+</body>
+</html>

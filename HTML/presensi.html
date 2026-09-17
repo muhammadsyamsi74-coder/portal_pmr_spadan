@@ -1,0 +1,296 @@
+<style>
+  .presensi-page { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+  
+  #guest-presensi-message { display: none; text-align: center; padding: 50px 20px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-top: 5px solid #b91c1c; }
+  
+  .presensi-form-card { background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-top: 5px solid #b91c1c; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .form-card-header { border-bottom: 1px solid #f0f0f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .form-card-header h2 { font-size: 18px; font-weight: 700; color: #b91c1c; }
+  .form-card-header p { font-size: 12px; color: #666; margin-top: 4px; }
+
+  .badge-mode-edit { background: #fff8e1; color: #b78103; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px dashed #b78103; display: none; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 11px; font-weight: 700; color: #444; }
+  .form-group input, .form-group select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; background-color: #fff; width: 100%; }
+  .form-group input:focus, .form-group select:focus { border-color: #b91c1c; }
+
+  /* Upload Foto & Thumbnail Container */
+  .photo-upload-box { border: 2px dashed #ddd; border-radius: 8px; padding: 12px; background: #fafafa; display: flex; flex-direction: column; gap: 10px; }
+  .photo-preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .preview-slot { position: relative; width: 100%; padding-top: 75%; border-radius: 6px; border: 1px solid #e0e0e0; overflow: hidden; background: #eee; }
+  .preview-slot img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+  .btn-remove-photo { position: absolute; top: 4px; right: 4px; background: rgba(185, 28, 28, 0.9); color: #ffffff !important; border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; z-index: 5; }
+  .btn-remove-photo:hover { background: #7f1d1d; }
+
+  /* DAFTAR NAMA ANGGOTA */
+  .checklist-box { border: 1px solid #e2e8f0; border-radius: 8px; background: #fafafa; padding: 6px; display: flex; flex-direction: column; gap: 5px; max-height: 450px; overflow-y: auto; }
+  .member-item { 
+    display: flex !important; 
+    align-items: center !important; 
+    justify-content: space-between !important;
+    background: #ffffff; 
+    border: 1px solid #edf2f7; 
+    border-radius: 6px; 
+    padding: 6px 8px !important; 
+    flex-wrap: nowrap !important; 
+    gap: 6px !important; 
+  }
+  .member-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+  .member-number { font-size: 10.5px; font-weight: 700; color: #64748b; width: 16px; flex-shrink: 0; text-align: right; }
+  .member-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .member-meta .nama { font-size: 11px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+  .member-meta .subtext { font-size: 8.5px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* KETERANGAN STATUS */
+  .legend-box { font-size: 9.5px; color: #555; background: #f8fafc; padding: 5px 8px; border-radius: 6px; display: inline-flex; flex-wrap: wrap; gap: 8px; font-weight: 600; border: 1px solid #e2e8f0; }
+  .legend-item { display: flex; align-items: center; gap: 3px; }
+  .legend-square { width: 13px; height: 13px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 7.5px; font-weight: bold; }
+  .bg-hadir { background: #16a34a; } .bg-izin { background: #0288d1; } .bg-sakit { background: #f59e0b; } .bg-alpa { background: #dc2626; } .bg-td { background: #64748b; }
+
+  /* KOTAK STATUS MINIMALIS */
+  .status-options { display: flex !important; gap: 3px !important; flex-shrink: 0 !important; }
+  .status-options label { cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
+  .status-options input[type="radio"] { display: none; }
+  .radio-box { 
+    display: flex; align-items: center; justify-content: center; 
+    width: 22px; height: 22px; border-radius: 4px; 
+    border: 1px solid #cbd5e1; background: #f8fafc; color: #64748b; 
+    transition: all 0.15s ease; font-size: 10px; font-weight: 800;
+  }
+  .status-options label:hover .radio-box { background: #e2e8f0; border-color: #94a3b8; }
+
+  .status-options label.opt-hadir input:checked + .radio-box { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .status-options label.opt-izin input:checked + .radio-box { background: #0288d1; border-color: #0288d1; color: #fff; }
+  .status-options label.opt-sakit input:checked + .radio-box { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+  .status-options label.opt-alpa input:checked + .radio-box { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .status-options label.opt-td input:checked + .radio-box { background: #64748b; border-color: #64748b; color: #fff; }
+
+  /* PERBAIKAN TOMBOL SUBMIT PRESENSI (TEGAS & KONTRAS) */
+  .form-submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+  .btn-submit-presensi { 
+    background-color: #b91c1c !important; 
+    color: #ffffff !important; 
+    border: 1px solid #991b1b !important; 
+    padding: 11px 22px; 
+    border-radius: 8px; 
+    font-size: 13px; 
+    font-weight: 800; 
+    cursor: pointer; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px; 
+    transition: all 0.2s ease; 
+    box-shadow: 0 2px 6px rgba(185, 28, 28, 0.25);
+    white-space: nowrap; 
+  }
+  .btn-submit-presensi:hover { background-color: #7f1d1d !important; color: #ffffff !important; box-shadow: 0 4px 12px rgba(127, 29, 29, 0.35); }
+  .btn-submit-presensi:disabled { background-color: #cbd5e1 !important; border-color: #cbd5e1 !important; color: #94a3b8 !important; cursor: not-allowed; box-shadow: none; }
+  .btn-cancel-edit { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; padding: 11px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: none; }
+  .btn-cancel-edit:hover { background: #cbd5e1; }
+
+  /* FILTER RIWAYAT PRESENSI 2 BARIS */
+  .history-filter-panel { background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+  .filter-row-1 { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .filter-row-1 label { font-size: 11px; font-weight: 700; color: #444; white-space: nowrap; }
+  .filter-date-group { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .filter-row-2 { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .filter-row-2 select { flex: 1; }
+
+  .filter-input-sm { padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 11px; outline: none; background: #fff; width: 100%; }
+  .filter-input-sm:focus { border-color: #b91c1c; }
+  .btn-reset-filter { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; height: 32px; }
+  .btn-reset-filter:hover { background: #e2e8f0; }
+
+  .btn-load-more { background: #f8fafc; border: 1px dashed #cbd5e1; color: #b91c1c; width: 100%; padding: 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; text-align: center; grid-column: 1 / -1; }
+  .btn-load-more:hover { background: #f1f5f9; }
+
+  /* KARTU RIWAYAT PRESENSI */
+  .history-section { display: flex; flex-direction: column; gap: 10px; }
+  .history-title { font-size: 14px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 8px; }
+  .sesi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; width: 100%; }
+  
+  .sesi-card { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; border-left: 3.5px solid #b91c1c; box-shadow: 0 1px 3px rgba(0,0,0,0.02); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  
+  .sesi-card-header { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .sesi-title { font-size: 12.5px; font-weight: 700; color: #1e293b; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sesi-badge { background-color: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; white-space: nowrap; border: 1px solid #fde68a; flex-shrink: 0; }
+  
+  .sesi-meta-row { display: flex; align-items: center; gap: 10px; font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sesi-meta-item { display: flex; align-items: center; gap: 3px; }
+  .sesi-meta-item i { width: 11px; height: 11px; color: #94a3b8; }
+
+  .sesi-stats-inline { display: flex; justify-content: space-around; background: #f8fafc; padding: 5px 8px; border-radius: 5px; border: 1px solid #f1f5f9; }
+  .stat-badge { font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+  .stat-badge small { font-size: 9.5px; opacity: 0.85; }
+  .stat-hadir { color: #16a34a; } .stat-izin { color: #0288d1; } .stat-sakit { color: #f59e0b; } .stat-alpa { color: #dc2626; }
+
+  .sesi-actions { display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #f8fafc; padding-top: 6px; }
+  .btn-sm-action { border: none; padding: 4px 8px; border-radius: 4px; font-size: 9.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+  .btn-detail { background: #f1f5f9; color: #475569; } .btn-detail:hover { background: #e2e8f0; }
+  .btn-edit { background: #e0f2fe; color: #0284c7; } .btn-edit:hover { background: #bae6fd; }
+  .btn-hapus { background: #fee2e2; color: #b91c1c; } .btn-hapus:hover { background: #fecaca; }
+
+  /* Modal Detail */
+  .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
+  .modal-backdrop.active { display: flex; }
+  .modal-box-detail { background: #fff; width: 100%; max-width: 580px; max-height: 90vh; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; }
+  .modal-header { background: linear-gradient(90deg, #7f1d1d, #b91c1c); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 14px; font-weight: 700; }
+  .modal-close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+  .modal-body { padding: 16px; overflow-y: auto; }
+  .modal-footer { padding: 10px 16px; background: #fafafa; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
+
+  @media (max-width: 650px) {
+    .presensi-form-card { padding: 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.keep-row { grid-template-columns: 1fr 1fr; } 
+    .photo-preview-grid { grid-template-columns: repeat(2, 1fr); }
+    .btn-submit-presensi, .btn-cancel-edit { width: 100%; justify-content: center; }
+    .form-submit-row { flex-direction: column-reverse; }
+    .sesi-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="presensi-page">
+
+  <div id="guest-presensi-message">
+    <div style="display: flex; justify-content: center; margin-bottom: 16px;"><i data-lucide="lock" style="width: 50px; height: 50px; color: #d0d0d0;"></i></div>
+    <h3 style="font-size: 17px; font-weight: 700; color: #7f1d1d; margin-bottom: 6px;">Akses Terbatas</h3>
+    <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Silakan login terlebih dahulu untuk mengisi presensi atau melihat riwayat kegiatan PMR.</p>
+    <button type="button" class="btn-submit-presensi" onclick="window.openLoginModal()" style="margin: 0 auto;">
+      <i data-lucide="log-in" style="width: 16px; height: 16px;"></i><span>Login Sekarang</span>
+    </button>
+  </div>
+
+  <div class="presensi-form-card" id="card-form-presensi">
+    <div class="form-card-header">
+      <div>
+        <h2 id="presensi-form-title">Formulir Presensi Kegiatan</h2>
+        <p id="presensi-form-desc">Isi rincian agenda dan tentukan status kehadiran anggota PMR.</p>
+      </div>
+      <span class="badge-mode-edit" id="badge-edit-mode">Mode Edit Sesi</span>
+    </div>
+
+    <form id="form-presensi" onsubmit="window.submitPresensiData(event)">
+      <input type="hidden" id="edit-session-id" value="" />
+      
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-grid">
+          <div class="form-group"><label>Nama Kegiatan *</label><input type="text" id="presensi-nama" placeholder="Contoh: Latihan Rutin Laporan" required /></div>
+          <div class="form-group">
+            <label>Jenis Kegiatan *</label>
+            <select id="presensi-jenis" required>
+              <option value="Latihan Rutin">Latihan Rutin</option>
+              <option value="Tugas Upacara">Tugas Upacara</option>
+              <option value="Bakti Sosial">Bakti Sosial</option>
+              <option value="Lomba PMR">Lomba PMR</option>
+              <option value="Diklat / Seminar">Diklat/Seminar</option>
+              <option value="Rapat Organisasi">Rapat Organisasi</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid keep-row">
+          <div class="form-group"><label>Tanggal *</label><input type="date" id="presensi-tanggal" required /></div>
+          <div class="form-group"><label>Tempat *</label><input type="text" id="presensi-tempat" placeholder="UKS / Lapangan" required /></div>
+        </div>
+
+        <div class="form-group">
+          <label>Deskripsi / Catatan (Opsional)</label>
+          <input type="text" id="presensi-deskripsi" placeholder="Materi yang dibahas atau catatan tugas" />
+        </div>
+
+        <div class="form-group">
+          <label>Foto Dokumentasi (Maksimal 4 Foto)</label>
+          <div class="photo-upload-box">
+            <input type="file" id="presensi-foto-input" accept="image/*" multiple onchange="window.handlePhotoSelection(event)" style="font-size: 12px;" />
+            <div class="photo-preview-grid" id="photo-preview-container"></div>
+            <span style="font-size: 10px; color: #888;">* Klik tanda silang (x) merah pada foto untuk menghapusnya langsung dari server.</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+            <label style="color: #222;">Daftar Anggota PMR:</label>
+            <div class="legend-box">
+              <div class="legend-item"><span class="legend-square bg-hadir">H</span> Hadir</div>
+              <div class="legend-item"><span class="legend-square bg-izin">I</span> Izin</div>
+              <div class="legend-item"><span class="legend-square bg-sakit">S</span> Sakit</div>
+              <div class="legend-item"><span class="legend-square bg-alpa">A</span> Alpa</div>
+              <div class="legend-item"><span class="legend-square bg-td">-</span> -</div>
+            </div>
+          </div>
+          <div id="presensi-member-list" class="checklist-box">
+            <div style="text-align: center; color: #888; padding: 25px;">Memuat data anggota...</div>
+          </div>
+        </div>
+
+        <div class="form-submit-row">
+          <button type="button" class="btn-cancel-edit" id="btn-cancel-edit" onclick="window.cancelEditPresensi()">Batal Edit</button>
+          <button type="submit" class="btn-submit-presensi" id="btn-submit-presensi">
+            <i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i>
+            <span id="btn-submit-text">Simpan Presensi</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="history-section" id="section-history-presensi">
+    <div class="history-title">
+      <i data-lucide="history" style="color: #b91c1c; width: 18px; height: 18px;"></i>
+      <span>Riwayat Presensi Terakhir</span>
+    </div>
+
+    <!-- FILTER RIWAYAT PRESENSI 2 BARIS -->
+    <div class="history-filter-panel">
+      <div class="filter-row-1">
+        <label>Tanggal:</label>
+        <div class="filter-date-group">
+          <input type="date" id="filter-tgl-mulai" class="filter-input-sm" onchange="window.handleHistoryFilter()" />
+          <span style="font-size: 11px; color: #999;">s/d</span>
+          <input type="date" id="filter-tgl-akhir" class="filter-input-sm" onchange="window.handleHistoryFilter()" />
+        </div>
+      </div>
+
+      <div class="filter-row-2">
+        <select id="filter-jenis-history" class="filter-input-sm" onchange="window.handleHistoryFilter()">
+          <option value="">Semua Kegiatan</option>
+          <option value="Latihan Rutin">Latihan Rutin</option>
+          <option value="Tugas Upacara">Tugas Upacara</option>
+          <option value="Bakti Sosial">Bakti Sosial</option>
+          <option value="Lomba PMR">Lomba PMR</option>
+          <option value="Diklat / Seminar">Diklat/Seminar</option>
+          <option value="Rapat Organisasi">Rapat Organisasi</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+        <button class="btn-reset-filter" onclick="window.resetHistoryFilter()">
+          <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="sesi-list-container" class="sesi-grid">
+      <div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 30px;">Memuat riwayat kegiatan...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL DETAIL PRESENSI -->
+<div class="modal-backdrop" id="modal-detail-presensi">
+  <div class="modal-box-detail">
+    <div class="modal-header">
+      <h3 id="detail-modal-title">Detail Presensi</h3>
+      <button type="button" class="modal-close-btn" onclick="window.closeDetailPresensiModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn-sm-action btn-detail" style="font-size:12px; padding:8px 16px;" onclick="window.closeDetailPresensiModal()">Tutup</button>
+    </div>
+  </div>
+</div>
