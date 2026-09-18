@@ -1,11 +1,10 @@
 /**
  * ==============================================================================
  * CONTROLLER MODUL KALENDER & AGENDA KEGIATAN - PMR SPADAN
- * Lengkap:
- * 1. Default kalender visual menampilkan bulan & tahun hari ini
- * 2. Tanggal dengan agenda diberi penanda lucu & jelas
- * 3. Default daftar agenda menampilkan seluruh kegiatan yang akan dihadapi
- * 4. Kompatibel dengan schema tabel 'agenda_kegiatan' (kolom 'tampilkan_di_das')
+ * Perbaikan Vercel & Supabase:
+ * - Mengambil instance database secara berlapis (window.db / parent.db / createClient langsung)
+ * - Penyesuaian kolom 'tampilkan_di_das' sesuai schema Supabase
+ * - Default menampilkan seluruh agenda mendatang
  * ==============================================================================
  */
 
@@ -16,8 +15,10 @@ window.selectedModuleCalDate = null;
 function getSupabaseClient() {
   if (window.db) return window.db;
   if (window.parent && window.parent.db) return window.parent.db;
-  if (typeof supabase !== "undefined" && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
-    window.db = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  if (typeof supabase !== "undefined") {
+    const url = window.SUPABASE_URL || (window.parent && window.parent.SUPABASE_URL) || "https://ndahxwqshyukqpnjkniw.supabase.co";
+    const key = window.SUPABASE_ANON_KEY || (window.parent && window.parent.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kYWh4d3FzaHl1a3Fwbmprbml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNjEzODUsImV4cCI6MjEwNDczNzM4NX0.lkxXa2M16275nkjNKnWN3KE5NT7J1BVoyEO7xVAxJt8";
+    window.db = supabase.createClient(url, key);
     return window.db;
   }
   return null;
@@ -25,12 +26,9 @@ function getSupabaseClient() {
 
 window.initKalenderModule = async function() {
   const btnTambah = document.getElementById("btn-tambah-agenda");
-
-  // Inisialisasi tanggal kalender ke hari ini
   window.moduleCalCurrentDate = new Date();
   window.selectedModuleCalDate = null;
 
-  // Cek hak akses pembina/pengurus
   const userProfile = window.activeUserProfile || (window.parent && window.parent.activeUserProfile);
   const userRole = (userProfile?.jabatan || "").toLowerCase();
   const ket = (userProfile?.keterangan_jabatan || "").toLowerCase();
@@ -49,9 +47,11 @@ window.loadAgendaData = async function() {
 
   if (!container) return;
   if (!dbClient) {
-    container.innerHTML = `<div style="color:#dc2626; font-size:12px; padding:20px; text-align:center;">Koneksi basis data belum siap. Silakan muat ulang.</div>`;
+    container.innerHTML = `<div style="color:#dc2626; font-size:12px; padding:20px; text-align:center;">Koneksi basis data belum siap. Silakan muat ulang halaman.</div>`;
     return;
   }
+
+  container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 25px 10px; font-size: 12px; font-weight: 600;">Memuat jadwal agenda kegiatan...</div>`;
 
   try {
     const { data, error } = await dbClient
@@ -65,14 +65,11 @@ window.loadAgendaData = async function() {
     window.renderModuleVisualCalendar();
     window.resetAgendaToUpcoming();
   } catch (err) {
-    console.error("Error load agenda:", err);
+    console.error("Gagal load agenda:", err);
     container.innerHTML = `<div style="color:#dc2626; font-size:12px; padding:20px; text-align:center;">Gagal memuat agenda: ${err.message}</div>`;
   }
 };
 
-/* --------------------------------------------------------------------------
-   1. PAPAN KALENDER VISUAL
--------------------------------------------------------------------------- */
 window.changeModuleCalMonth = function(delta) {
   window.moduleCalCurrentDate.setMonth(window.moduleCalCurrentDate.getMonth() + delta);
   window.renderModuleVisualCalendar();
@@ -96,7 +93,6 @@ window.renderModuleVisualCalendar = function() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
 
-  // Pemetaan agenda pada bulan ini
   const eventsByDay = {};
   window.agendaKegiatanList.forEach(ag => {
     if (ag.tanggal_mulai) {
@@ -156,9 +152,6 @@ window.selectModuleCalDate = function(dateStr, cellEl) {
   window.renderAgendaCardsIntoBox(matching, `Tidak ada kegiatan yang dijadwalkan pada tanggal ${d}/${m}/${y}.`);
 };
 
-/* --------------------------------------------------------------------------
-   2. DAFTAR AGENDA MENDATANG (DEFAULT)
--------------------------------------------------------------------------- */
 window.resetAgendaToUpcoming = function() {
   window.selectedModuleCalDate = null;
   document.querySelectorAll(".cal-cell").forEach(c => c.classList.remove("selected"));
@@ -169,18 +162,18 @@ window.resetAgendaToUpcoming = function() {
   if (headingEl) headingEl.textContent = "Agenda yang Akan Dihadapi";
   if (resetBtn) resetBtn.style.display = "none";
 
-  // Ambil tanggal hari ini (format YYYY-MM-DD)
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-  // Filter seluruh kegiatan mulai hari ini ke depan
   const upcomingAgendas = window.agendaKegiatanList.filter(item => {
     if (!item.tanggal_mulai) return false;
     const endRef = item.tanggal_selesai || item.tanggal_mulai;
     return endRef >= todayStr;
   });
 
-  window.renderAgendaCardsIntoBox(upcomingAgendas, "Belum ada agenda kegiatan mendatang yang dijadwalkan.");
+  // Jika tidak ada agenda di masa depan, tampilkan semua agenda yang tercatat
+  const displayItems = upcomingAgendas.length > 0 ? upcomingAgendas : window.agendaKegiatanList;
+  window.renderAgendaCardsIntoBox(displayItems, "Belum ada agenda kegiatan yang tercatat.");
 };
 
 window.renderAgendaCardsIntoBox = function(items, emptyMsg) {
@@ -188,11 +181,7 @@ window.renderAgendaCardsIntoBox = function(items, emptyMsg) {
   if (!container) return;
 
   if (items.length === 0) {
-    container.innerHTML = `
-      <div style="text-align: center; color: #94a3b8; padding: 35px 10px; font-size: 12px; font-weight: 600;">
-        ${emptyMsg}
-      </div>
-    `;
+    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 35px 10px; font-size: 12px; font-weight: 600;">${emptyMsg}</div>`;
     return;
   }
 
@@ -253,9 +242,6 @@ window.renderAgendaCardsIntoBox = function(items, emptyMsg) {
   if (window.lucide) lucide.createIcons();
 };
 
-/* --------------------------------------------------------------------------
-   3. MODAL TAMBAH & HAPUS AGENDA
--------------------------------------------------------------------------- */
 window.openTambahAgendaModal = function() {
   document.getElementById("form-tambah-agenda")?.reset();
   const today = new Date().toISOString().split("T")[0];
