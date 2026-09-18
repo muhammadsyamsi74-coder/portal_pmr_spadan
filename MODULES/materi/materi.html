@@ -1,73 +1,506 @@
-<div class="agenda-widget-card" style="border-left: 4px solid var(--maroon);">
-  <div class="agenda-widget-header">
-    <div class="agenda-brand">
-      <div class="agenda-icon-box" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;">
+<style>
+  /* ==========================================================================
+     ISOLATED CSS - MODUL PUSTAKA MATERI PMR SPADAN (ICON-ONLY ACTIONS)
+     ========================================================================== */
+  .materi-module-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #0f172a;
+  }
+
+  /* TOOLBAR ATAS */
+  .materi-top-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  }
+  .materi-top-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .materi-icon-cube {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
+  }
+  .materi-icon-cube svg { width: 22px; height: 22px; }
+  .materi-top-title h3 {
+    font-size: 15.5px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+  }
+  .materi-top-title p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+    font-weight: 600;
+  }
+
+  .btn-materi-add {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+    transition: all 0.2s;
+  }
+  .btn-materi-add:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35); }
+  .btn-materi-add svg { width: 16px; height: 16px; }
+
+  /* SEARCH BARIS */
+  .materi-search-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  }
+  .materi-search-card svg {
+    width: 17px;
+    height: 17px;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  .materi-search-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0f172a;
+    background: transparent;
+  }
+  .materi-search-input::placeholder { color: #94a3b8; }
+
+  /* WADAH DAFTAR KARTU MATERI */
+  .materi-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .materi-item-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .materi-item-card:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+  }
+  .materi-item-card.is-pinned-card {
+    background: #fffdf5;
+    border-color: #fde68a;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+  }
+
+  .materi-icon-type {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .materi-icon-type svg { width: 20px; height: 20px; }
+
+  .materi-info-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .materi-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+  }
+  .pin-badge {
+    font-size: 8.5px;
+    font-weight: 900;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    padding: 2px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.4px;
+  }
+  .pin-badge svg { width: 10px; height: 10px; }
+
+  .materi-card-title {
+    font-size: 13.5px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.3;
+  }
+  .materi-card-desc {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 3px;
+    line-height: 1.35;
+    font-weight: 500;
+  }
+
+  /* KUMPULAN TOMBOL AKSI BERBASIS IKON (RINGKAS & TIDAK SESAK) */
+  .materi-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-icon-materi {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    background: #f8fafc;
+  }
+  .btn-icon-materi svg { width: 15px; height: 15px; }
+
+  /* 1. Buka Tautan */
+  .btn-icon-open {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+  .btn-icon-open:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    transform: translateY(-1px);
+  }
+
+  /* 2. Salin Tautan */
+  .btn-icon-copy {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+  .btn-icon-copy:hover {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+  }
+  .btn-icon-copy.copied {
+    background: #dcfce7;
+    color: #16a34a;
+    border-color: #86efac;
+  }
+
+  /* 3. Sematkan Pin */
+  .btn-icon-pin {
+    background: #f8fafc;
+    color: #64748b;
+    border-color: #cbd5e1;
+  }
+  .btn-icon-pin:hover {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+  }
+  .btn-icon-pin.active-pinned {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+  }
+
+  /* 4. Edit Materi */
+  .btn-icon-edit {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+  .btn-icon-edit:hover {
+    background: #f8fafc;
+    color: #d97706;
+    border-color: #fde68a;
+  }
+
+  /* 5. Hapus Materi */
+  .btn-icon-del {
+    background: #f8fafc;
+    color: #ef4444;
+    border-color: #fecaca;
+  }
+  .btn-icon-del:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+  }
+
+  /* MODAL TAMBAH & EDIT MATERI */
+  .materi-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+    box-sizing: border-box;
+  }
+  .materi-modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+  .materi-modal-header {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .materi-modal-header h3 {
+    font-size: 14px;
+    font-weight: 900;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .materi-modal-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .materi-modal-close:hover { color: #fff; }
+
+  .materi-modal-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .materi-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .materi-form-group label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .materi-form-group input,
+  .materi-form-group textarea {
+    padding: 9px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    outline: none;
+    background: #ffffff;
+    color: #0f172a;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .materi-form-group input:focus,
+  .materi-form-group textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .materi-modal-footer {
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-top: 1.5px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .btn-modal-cancel-materi {
+    background: #e2e8f0;
+    color: #334155;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-modal-save-materi {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  /* RESPONSIF MOBILE */
+  @media (max-width: 650px) {
+    .materi-module-wrapper { padding: 12px 8px; }
+    .materi-top-bar { padding: 12px; }
+    .materi-item-card { 
+      flex-direction: column; 
+      align-items: flex-start; 
+      gap: 12px; 
+      padding: 12px;
+    }
+    .materi-actions-row { 
+      width: 100%; 
+      justify-content: flex-end; 
+      border-top: 1px dashed #e2e8f0;
+      padding-top: 8px;
+      gap: 8px;
+    }
+    .btn-icon-materi {
+      width: 36px;
+      height: 36px;
+    }
+  }
+</style>
+
+<div class="materi-module-wrapper">
+  <!-- TOP BAR JUDUL & AKSI TAMBAH -->
+  <div class="materi-top-bar">
+    <div class="materi-top-title">
+      <div class="materi-icon-cube">
         <i data-lucide="book-open"></i>
       </div>
       <div>
         <h3>Pustaka & Materi PMR</h3>
-        <p>Kumpulan modul belajar, slide presentasi, dan tautan dokumen resmi PMR SPADAN.</p>
+        <p>Kumpulan modul belajar, slide presentasi, dan dokumen panduan relawan PMR SPADAN.</p>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <!-- Tombol Tambah Materi: Khusus Admin & Pengurus Tertentu -->
-      <button id="btn-tambah-materi" class="btn-agenda-action" onclick="window.openTambahMateriModal()" style="display: none;">
-        <i data-lucide="plus"></i> Tambah Materi
-      </button>
-      <button onclick="window.tutupMateriViewer()" style="background: none; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; color: #64748b; cursor: pointer; font-size: 11px; font-weight: 700;">
-        Tutup
-      </button>
-    </div>
+    <button id="btn-tambah-materi" class="btn-materi-add" onclick="window.openTambahMateriModal()" style="display: none;">
+      <i data-lucide="plus"></i>
+      <span>Tambah Materi</span>
+    </button>
   </div>
 
-  <div style="margin: 12px 0 6px 0;">
-    <input type="text" id="filter-materi-search" placeholder="Cari judul materi..." oninput="window.renderMateriList()" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; outline: none; background: #fff;" />
+  <!-- PENCARIAN MATERI -->
+  <div class="materi-search-card">
+    <i data-lucide="search"></i>
+    <input type="text" id="filter-materi-search" class="materi-search-input" placeholder="Cari judul modul atau kata kunci materi..." oninput="window.renderMateriList()" />
   </div>
 
-  <!-- Kontainer Kartu Materi -->
-  <div id="materi-items-container" class="agenda-list-grid" style="margin-top: 10px;">
-    <div style="text-align: center; color: #94a3b8; padding: 25px 10px; font-size: 12px;">
-      Memuat daftar materi...
+  <!-- DAFTAR KARTU MATERI -->
+  <div id="materi-items-container" class="materi-list-container">
+    <div style="text-align: center; color: #94a3b8; padding: 35px 10px; font-size: 12px; font-weight: 600;">
+      Memuat pustaka materi...
     </div>
   </div>
 </div>
 
-<!-- MODAL TAMBAH MATERI -->
-<div class="modal-backdrop" id="modal-tambah-materi" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
-  <div class="modal-card" style="background: white; width: 100%; max-width: 480px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-    <div style="background: var(--maroon); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="book-open"></i>
-        <span>Tambah Tautan Materi Baru</span>
+<!-- MODAL TAMBAH & EDIT MATERI -->
+<div class="materi-modal-backdrop" id="modal-tambah-materi">
+  <div class="materi-modal-card">
+    <div class="materi-modal-header">
+      <h3 id="modal-materi-title">
+        <i data-lucide="book-plus" style="width: 17px; height: 17px;"></i>
+        <span>Tambah Pustaka Materi Baru</span>
       </h3>
-      <button onclick="window.closeTambahMateriModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+      <button type="button" class="materi-modal-close" onclick="window.closeTambahMateriModal()">&times;</button>
     </div>
-    <form id="form-tambah-materi" onsubmit="window.handleTambahMateriSubmit(event)" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 11px;">
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Judul Materi *</label>
-        <input type="text" id="materi-judul" placeholder="Contoh: Modul Pertolongan Pertama Bencana" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
+    <form id="form-tambah-materi" onsubmit="window.handleTambahMateriSubmit(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+      <input type="hidden" id="materi-id" value="" />
+      <div class="materi-modal-body">
+        <div class="materi-form-group">
+          <label>Judul Materi *</label>
+          <input type="text" id="materi-judul" placeholder="Contoh: Modul Pertolongan Pertama Bencana" required />
+        </div>
+
+        <div class="materi-form-group">
+          <label>Tautan Materi (Google Drive / Web) *</label>
+          <input type="url" id="materi-url" placeholder="https://drive.google.com/..." required />
+        </div>
+
+        <div class="materi-form-group">
+          <label>Deskripsi Singkat (Opsional)</label>
+          <textarea id="materi-deskripsi" rows="2" placeholder="Ringkasan materi atau petunjuk belajar bagi siswa..."></textarea>
+        </div>
+
+        <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="materi-pin" style="width: 16px; height: 16px; cursor: pointer;" />
+          <label for="materi-pin" style="font-size: 11.5px; font-weight: 700; color: #334155; cursor: pointer;">
+            Sematkan (Pin) materi ini di posisi paling atas
+          </label>
+        </div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tautan URL Materi (Google Drive / Link Lainnya) *</label>
-        <input type="url" id="materi-url" placeholder="https://drive.google.com/..." required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Deskripsi Singkat (Opsional)</label>
-        <textarea id="materi-deskripsi" rows="2" placeholder="Ringkasan isi materi atau instruksi membaca..." style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;"></textarea>
-      </div>
-
-      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="materi-pin" style="width: 16px; height: 16px; cursor: pointer;" />
-        <label for="materi-pin" style="font-size: 11.5px; font-weight: 600; color: #334155; cursor: pointer;">
-          Sematkan (Pin) materi ini di urutan paling atas
-        </label>
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-        <button type="button" onclick="window.closeTambahMateriModal()" style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; background: #e2e8f0; cursor: pointer;">Batal</button>
-        <button type="submit" id="btn-save-materi" style="padding: 8px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; background: var(--maroon); color: white; cursor: pointer;">Simpan Materi</button>
+      <div class="materi-modal-footer">
+        <button type="button" class="btn-modal-cancel-materi" onclick="window.closeTambahMateriModal()">Batal</button>
+        <button type="submit" id="btn-save-materi" class="btn-modal-save-materi">Simpan Materi</button>
       </div>
     </form>
   </div>

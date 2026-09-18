@@ -2,24 +2,24 @@
  * ==============================================================================
  * ENGINE MODUL KTA - PORTAL PMR SPADAN
  * Diperbarui:
- * - Sinkronisasi data user aktif ke floating header modul KTA (Nama, Jabatan, Avatar)
- * - Logo SMPN 8 Balikpapan dan Logo PMI disematkan berdampingan pada header kartu
- * - Alumni diizinkan mengakses modul dan dibuatkan KTA dengan desain khusus
- * - Watermark dan banner besar "ALUMNI" pada kartu alumni
- * - Guest dan Non-Aktif diblokir dari akses
- * - Barcode memuat data teks verifikasi keanggotaan
+ * - Disesuaikan untuk penampil in-app Utility (tanpa header ganda)
+ * - Sinkronisasi hak akses user aktif langsung dari parent atau Supabase
+ * - Logo SMPN 8 Balikpapan dan Logo PMI presisi berdampingan
+ * - Desain kartu ramah remaja, ceria, dan siap cetak dua sisi (CR-80)
  * ==============================================================================
  */
 
 window.ktaAnggotaList = [];
 window.currentUserProfile = null;
 
+function getKtaDbClient() {
+  if (window.db) return window.db;
+  if (window.parent && window.parent.db) return window.parent.db;
+  return null;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
-  if (window.db) {
-    await window.initKtaEngine();
-  } else {
-    setTimeout(window.initKtaEngine, 300);
-  }
+  await window.initKtaEngine();
 });
 
 window.initKtaEngine = async function() {
@@ -33,57 +33,43 @@ window.initKtaEngine = async function() {
 };
 
 window.fetchActiveUser = async function() {
-  const nameEl = document.getElementById("kta-user-name");
-  const roleEl = document.getElementById("kta-user-role");
-  const avatarEl = document.getElementById("kta-user-avatar");
-
   try {
+    if (window.parent && window.parent.activeUserProfile) {
+      window.currentUserProfile = window.parent.activeUserProfile;
+      return;
+    }
+
     if (typeof getCurrentUserProfile === "function") {
       window.currentUserProfile = await getCurrentUserProfile();
-    } else if (window.db?.auth) {
-      const { data: { user } } = await window.db.auth.getUser();
-      if (user) {
-        const { data } = await window.db.from("users_profile").select("*").eq("id", user.id).single();
-        window.currentUserProfile = data;
-      }
-    }
-
-    if (window.currentUserProfile) {
-      const nama = window.currentUserProfile.nama_panggilan || window.currentUserProfile.nama_lengkap || "Petugas";
-      const role = (window.currentUserProfile.keterangan_jabatan || window.currentUserProfile.jabatan || "Anggota").toUpperCase();
-
-      if (nameEl) nameEl.textContent = nama;
-      if (roleEl) roleEl.textContent = role;
-      if (avatarEl) {
-        avatarEl.innerHTML = window.currentUserProfile.foto_profil_url
-          ? `<img src="${window.currentUserProfile.foto_profil_url}" style="width:100%; height:100%; object-fit:cover;" />`
-          : nama.charAt(0).toUpperCase();
-      }
     } else {
-      if (nameEl) nameEl.textContent = "Tamu";
-      if (roleEl) roleEl.textContent = "Mode Baca";
-      if (avatarEl) avatarEl.textContent = "?";
+      const dbClient = getKtaDbClient();
+      if (dbClient?.auth) {
+        const { data: { user } } = await dbClient.auth.getUser();
+        if (user) {
+          const { data } = await dbClient.from("users_profile").select("*").eq("id", user.id).single();
+          window.currentUserProfile = data;
+        }
+      }
     }
   } catch (e) {
-    console.warn("Gagal membaca profil aktif:", e);
+    console.warn("Gagal membaca profil aktif KTA:", e);
   }
 };
 
 window.validateKtaAccess = function() {
   const container = document.getElementById("kta-grid-list");
-  const toolbar = document.querySelector(".kta-toolbar");
+  const toolbar = document.querySelector(".kta-toolbar-clean");
 
   if (!window.currentUserProfile) {
     if (toolbar) toolbar.style.display = "none";
     if (container) {
       container.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #fff; border-radius: 14px; border-top: 5px solid #b91c1c; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #fff; border-radius: 18px; border-top: 5px solid #be123c; box-shadow: 0 6px 20px rgba(0,0,0,0.04);">
           <div style="display: flex; justify-content: center; margin-bottom: 14px;">
-            <i data-lucide="lock" style="width: 50px; height: 50px; color: #dc2626;"></i>
+            <i data-lucide="lock" style="width: 48px; height: 48px; color: #be123c;"></i>
           </div>
-          <h3 style="font-size: 18px; font-weight: 800; color: #b91c1c; margin-bottom: 8px;">Akses Terbatas</h3>
-          <p style="font-size: 13px; color: #64748b; max-width: 420px; margin: 0 auto 20px;">Silakan login terlebih dahulu untuk mengakses dan mencetak Kartu Tanda Anggota (KTA).</p>
-          <button class="btn-print-kta" onclick="window.close()" style="margin: 0 auto;">Kembali ke Portal</button>
+          <h3 style="font-size: 18px; font-weight: 900; color: #be123c; margin-bottom: 6px;">Akses Terbatas</h3>
+          <p style="font-size: 12.5px; color: #64748b; max-width: 420px; margin: 0 auto;">Silakan masuk menggunakan akun PMR terdaftar untuk melihat dan mencetak Kartu Tanda Anggota (KTA).</p>
         </div>
       `;
       if (window.lucide) lucide.createIcons();
@@ -94,18 +80,17 @@ window.validateKtaAccess = function() {
   const role = (window.currentUserProfile.jabatan || "").toLowerCase();
   const ket = (window.currentUserProfile.keterangan_jabatan || "").toLowerCase();
 
-  // Tolak hanya pengguna Non-Aktif
+  // Tolak pengguna Non-Aktif
   if (role === "non-aktif" || ket === "non-aktif") {
     if (toolbar) toolbar.style.display = "none";
     if (container) {
       container.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #fff; border-radius: 14px; border-top: 5px solid #dc2626; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #fff; border-radius: 18px; border-top: 5px solid #dc2626; box-shadow: 0 6px 20px rgba(0,0,0,0.04);">
           <div style="display: flex; justify-content: center; margin-bottom: 14px;">
-            <i data-lucide="shield-alert" style="width: 50px; height: 50px; color: #dc2626;"></i>
+            <i data-lucide="shield-alert" style="width: 48px; height: 48px; color: #dc2626;"></i>
           </div>
-          <h3 style="font-size: 18px; font-weight: 800; color: #dc2626; margin-bottom: 8px;">Akun Non-Aktif</h3>
-          <p style="font-size: 13px; color: #64748b; max-width: 420px; margin: 0 auto 20px;">Akun Anda saat ini berstatus non-aktif. Silakan hubungi Pembina PMR untuk aktivasi status keanggotaan.</p>
-          <button class="btn-print-kta" onclick="window.close()" style="margin: 0 auto;">Kembali ke Portal</button>
+          <h3 style="font-size: 18px; font-weight: 900; color: #dc2626; margin-bottom: 6px;">Akun Belum Aktif</h3>
+          <p style="font-size: 12.5px; color: #64748b; max-width: 420px; margin: 0 auto;">Status akun Anda masih menunggu persetujuan Pembina PMR SPADAN.</p>
         </div>
       `;
       if (window.lucide) lucide.createIcons();
@@ -118,17 +103,18 @@ window.validateKtaAccess = function() {
 
 window.fetchKtaData = async function() {
   const container = document.getElementById("kta-grid-list");
-  if (!container || !window.db) return;
+  const dbClient = getKtaDbClient();
+  if (!container || !dbClient) return;
 
   try {
-    const { data, error } = await window.db
+    const { data, error } = await dbClient
       .from("users_profile")
       .select("*")
       .order("nama_lengkap", { ascending: true });
 
     if (error) throw error;
 
-    // Filter anggota valid: sertakan Anggota Aktif, Pengurus, Admin, DAN ALUMNI (hanya singkirkan non-aktif)
+    // Filter anggota valid: sertakan Anggota Aktif, Pengurus, Admin, DAN ALUMNI
     const validMembers = (data || []).filter(u => {
       const ket = (u.keterangan_jabatan || "").toLowerCase();
       const jab = (u.jabatan || "").toLowerCase();
@@ -139,7 +125,7 @@ window.fetchKtaData = async function() {
     const userKet = (window.currentUserProfile?.keterangan_jabatan || "").toLowerCase();
     const isAdmin = userRole === "admin" || userKet.includes("pembina");
 
-    // Jika bukan admin, hanya tampilkan KTA dirinya sendiri (termasuk jika user adalah alumni)
+    // Jika bukan admin, hanya tampilkan KTA miliknya sendiri
     if (!isAdmin && window.currentUserProfile) {
       window.ktaAnggotaList = validMembers.filter(u => u.id === window.currentUserProfile.id);
       const filterWrapper = document.getElementById("kta-filter-wrapper");
@@ -152,7 +138,7 @@ window.fetchKtaData = async function() {
     window.renderKtaCards(window.ktaAnggotaList);
   } catch (err) {
     console.error("Gagal memuat data KTA:", err);
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #c62828; padding: 30px;">Gagal memuat data: ${err.message}</div>`;
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #dc2626; padding: 30px; font-weight: 700;">Gagal memuat data: ${err.message}</div>`;
   }
 };
 
@@ -164,8 +150,8 @@ window.checkMissingPhotos = function() {
   if (myData && !myData.foto_profil_url) {
     alertContainer.innerHTML = `
       <div class="alert-upload-photo">
-        <i data-lucide="alert-triangle" style="width: 20px; height: 20px; flex-shrink: 0;"></i>
-        <span>Foto profil Anda belum tersedia. Silakan unggah pas foto resmi melalui menu <b>Pengaturan Profil</b> di portal utama agar foto muncul pada kartu.</span>
+        <i data-lucide="sparkles" style="width: 20px; height: 20px; flex-shrink: 0; color: #d97706;"></i>
+        <span>Pas foto Anda belum diunggah. Silakan lengkapi melalui menu <b>Edit Profil</b> agar pas foto resmi Anda muncul di kartu identitas!</span>
       </div>
     `;
     if (window.lucide) lucide.createIcons();
@@ -180,8 +166,8 @@ window.filterKtaData = function() {
 
   const filtered = window.ktaAnggotaList.filter(u => {
     const matchNama = (u.nama_lengkap || "").toLowerCase().includes(q) || (u.nama_panggilan || "").toLowerCase().includes(q);
-    
     const ket = (u.keterangan_jabatan || "").toLowerCase();
+
     let matchKat = true;
     if (katVal === "alumni") {
       matchKat = ket.includes("alumni");
@@ -206,25 +192,25 @@ window.renderKtaCards = function(list) {
   if (!container) return;
 
   if (list.length === 0) {
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;">Tidak ada data yang ditemukan.</div>`;
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 40px; font-weight: 700;">Tidak ada kartu anggota yang ditemukan.</div>`;
     return;
   }
 
-  // Sumber Logo PMI dan Logo SMPN 8 Balikpapan
+  // Logo PMI & Logo SMPN 8 Balikpapan
   const logoPmiUrl = "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/profil-anggota/LOGO%20PMI%20untuk%20aplikasi.png";
   const logoSmpn8Url = "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/LOGO%20SMP%20NEGERI%208%20BALIKPAPAN%20-%20untuk%20website.png";
 
   container.innerHTML = list.map(user => {
     const ket = (user.keterangan_jabatan || "").toLowerCase();
     const isAlumni = ket.includes("alumni");
-
     const hasPhoto = Boolean(user.foto_profil_url && user.foto_profil_url.trim() !== "");
+
     const photoElement = hasPhoto
       ? `<img src="${user.foto_profil_url}" class="front-photo" alt="Foto ${user.nama_lengkap}" />`
       : `
         <div class="photo-placeholder-box">
           <i data-lucide="user-x"></i>
-          <span>Foto Belum Diunggah</span>
+          <span>Belum Ada Foto</span>
         </div>
       `;
 
@@ -248,19 +234,7 @@ window.renderKtaCards = function(list) {
 
     // Data teks QR Code
     const statusTeks = isAlumni ? "ALUMNI RESMI" : "AKTIF";
-    const qrTextContent = 
-`KARTU IDENTITAS PMR SPADAN
-----------------------------
-Nama: ${user.nama_lengkap}
-Golongan Darah: ${bloodDisplay}
-Tanggal Lahir: ${window.formatTanggalLahir(user.tanggal_lahir)}
-ID: ${user.id.substring(0, 8).toUpperCase()}
-Tahun Bergabung: ${user.tahun_bergabung || '-'}
-Kategori: ${isAlumni ? 'ALUMNI' : (user.keterangan_jabatan || user.jabatan || 'Anggota')}
-Status: ${statusTeks}
-----------------------------
-SMP Negeri 8 Balikpapan`;
-
+    const qrTextContent = `KARTU IDENTITAS PMR SPADAN\n----------------------------\nNama: ${user.nama_lengkap}\nGolongan Darah: ${bloodDisplay}\nTanggal Lahir: ${window.formatTanggalLahir(user.tanggal_lahir)}\nID: ${user.id.substring(0, 8).toUpperCase()}\nTahun Bergabung: ${user.tahun_bergabung || '-'}\nKategori: ${isAlumni ? 'ALUMNI' : (user.keterangan_jabatan || user.jabatan || 'Anggota')}\nStatus: ${statusTeks}\n----------------------------\nSMP Negeri 8 Balikpapan`;
     const qrCodeApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=${encodeURIComponent(qrTextContent)}`;
 
     const cardCustomClass = isAlumni ? "alumni-card" : "";
@@ -272,7 +246,6 @@ SMP Negeri 8 Balikpapan`;
     return `
       <div class="kta-item-card">
         <div class="card-preview-pair">
-          
           <!-- KARTU SISI DEPAN -->
           <div class="id-card id-card-front ${cardCustomClass}" id="card-front-${user.id}">
             ${watermarkHtml}
@@ -284,16 +257,14 @@ SMP Negeri 8 Balikpapan`;
               <h3>${headerTitle}</h3>
               <p>${headerSub}</p>
             </div>
-
             <div class="front-body">
               ${bloodBadgeHtml}
               ${photoElement}
               <div class="front-name">${user.nama_lengkap}</div>
               ${roleBadgeHtml}
             </div>
-
             <div class="front-footer">
-              <img src="${qrCodeApi}" class="front-qr" alt="Barcode Data" title="Pindai untuk melihat data keanggotaan" />
+              <img src="${qrCodeApi}" class="front-qr" alt="QR Code Anggota" title="Pindai untuk verifikasi status anggota" />
               <div class="front-id-col">
                 <span>NOMOR IDENTITAS</span>
                 <b>${user.id.substring(0, 8).toUpperCase()}</b>
@@ -306,12 +277,11 @@ SMP Negeri 8 Balikpapan`;
           <div class="id-card id-card-back ${cardCustomClass}" id="card-back-${user.id}">
             <div class="back-header">
               <div class="header-logos-row">
-                <img src="${logoPmiUrl}" class="header-logo-box" style="width: 22px; height: 22px;" alt="Logo PMI" />
-                <img src="${logoSmpn8Url}" class="header-logo-box" style="width: 22px; height: 22px;" alt="Logo SMPN 8 Balikpapan" />
+                <img src="${logoPmiUrl}" class="header-logo-box" style="width: 20px; height: 20px;" alt="Logo PMI" />
+                <img src="${logoSmpn8Url}" class="header-logo-box" style="width: 20px; height: 20px;" alt="Logo SMPN 8 Balikpapan" />
               </div>
               <h4>TRI BAKTI PMR</h4>
             </div>
-
             <div class="back-body">
               <div class="tri-bakti-box">
                 <h4>TRI BAKTI PALANG MERAH REMAJA</h4>
@@ -321,8 +291,7 @@ SMP Negeri 8 Balikpapan`;
                   <li>Mempererat persahabatan nasional dan internasional.</li>
                 </ol>
               </div>
-
-              <div class="prinsip-title">7 PRINSIP DASAR GERAKAN PALANG MERAH</div>
+              <div class="prinsip-title">7 PRINSIP DASAR KEPALANGMERAHAN</div>
               <div class="prinsip-grid">
                 <span>Kemanusiaan</span>
                 <span>Kesamaan</span>
@@ -333,18 +302,17 @@ SMP Negeri 8 Balikpapan`;
                 <span>Kesemestaan</span>
               </div>
             </div>
-
             <div class="back-footer">
-              <p>${isAlumni ? 'Koordinator Korps Alumni' : 'Pembina PMR'}</p>
-              <b style="display:block; margin-top: 14px; text-decoration: underline;">SMP NEGERI 8 BALIKPAPAN</b>
+              <p>${isAlumni ? 'Koordinator Korps Alumni' : 'Pembina PMR Madya'}</p>
+              <b style="display:block; margin-top: 10px; text-decoration: underline;">SMP NEGERI 8 BALIKPAPAN</b>
             </div>
           </div>
-
         </div>
 
         <div class="card-actions">
           <button class="btn-print-kta ${btnPrintClass}" onclick="window.printKtaPair('${user.id}')">
-            <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Cetak Kartu Bolak-Balik
+            <i data-lucide="printer" style="width: 15px; height: 15px;"></i>
+            <span>Cetak Kartu Bolak-Balik</span>
           </button>
         </div>
       </div>

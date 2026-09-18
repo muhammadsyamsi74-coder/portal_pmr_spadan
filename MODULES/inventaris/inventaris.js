@@ -1,12 +1,9 @@
 /**
  * ==============================================================================
  * CONTROLLER MODUL INVENTARIS & UKS - PMR SPADAN
- * Diperbarui dengan Hak Akses Berjenjang:
- * - Guest, Alumni, Non-Aktif: Hanya melihat Foto, Nama, dan Jumlah di Tab Logistik.
- * - Tab Fasilitas UKS: Tetap dapat dilihat oleh semua peran (mode baca).
- * - Tab Usulan Pengadaan: Disembunyikan total untuk Guest, Alumni, dan Non-Aktif.
- * - Tombol Header: Tutup modul secara langsung.
- * - Preview foto & modal detail khusus barang.
+ * Diperbarui:
+ * - Header modul mandiri ditiadakan karena terintegrasi penuh ke Utility Viewport
+ * - Penyesuaian pengecekan sesi login dan hak akses tanpa elemen header lokal
  * ==============================================================================
  */
 
@@ -36,9 +33,6 @@ document.addEventListener("DOMContentLoaded", async () => {
    1. OTORISASI & SESI
 -------------------------------------------------------------------------- */
 async function initInventarisSession() {
-  const userNameEl = document.getElementById("inv-user-name");
-  const userRoleEl = document.getElementById("inv-user-role");
-  const userAvatarEl = document.getElementById("inv-user-avatar");
   const guestBanner = document.getElementById("guest-alert-banner");
   const guestAlertText = document.getElementById("guest-alert-text");
   const btnTambah = document.getElementById("btn-tambah-barang");
@@ -47,16 +41,18 @@ async function initInventarisSession() {
   const filterKepemilikan = document.getElementById("inv-filter-kepemilikan");
   const filterKondisi = document.getElementById("inv-filter-kondisi");
 
-  if (typeof getCurrentUser !== "function") return;
-  currentUser = await getCurrentUser();
+  // Periksa profil dari jendela induk portal (jika di-embed di iframe)
+  if (window.parent && window.parent.activeUserProfile) {
+    currentUserProfile = window.parent.activeUserProfile;
+    currentUser = { id: currentUserProfile.id, email: currentUserProfile.email };
+  } else if (typeof getCurrentUser === "function") {
+    currentUser = await getCurrentUser();
+    currentUserProfile = await getCurrentUserProfile();
+  }
 
-  if (!currentUser) {
+  if (!currentUser || !currentUserProfile) {
     currentUserProfile = { jabatan: "guest", nama_lengkap: "Tamu" };
     isPrivilegedUser = false;
-
-    if (userNameEl) userNameEl.textContent = "Tamu";
-    if (userRoleEl) userRoleEl.textContent = "Mode Baca";
-    if (userAvatarEl) userAvatarEl.textContent = "?";
     if (guestBanner) guestBanner.style.display = "flex";
     if (btnTambah) btnTambah.style.display = "none";
     if (btnEditBangunan) btnEditBangunan.style.display = "none";
@@ -66,22 +62,10 @@ async function initInventarisSession() {
     return;
   }
 
-  currentUserProfile = await getCurrentUserProfile();
   const role = (currentUserProfile?.jabatan || "non-aktif").toLowerCase();
   const ket = (currentUserProfile?.keterangan_jabatan || "").toLowerCase();
-  const nama = currentUserProfile?.nama_lengkap || currentUser.email;
-
-  if (userNameEl) userNameEl.textContent = currentUserProfile?.nama_panggilan || nama;
-  if (userRoleEl) userRoleEl.textContent = `${role.toUpperCase()} (${currentUserProfile?.keterangan_jabatan || '-'})`;
-
-  if (userAvatarEl) {
-    userAvatarEl.innerHTML = currentUserProfile?.foto_profil_url
-      ? `<img src="${currentUserProfile.foto_profil_url}" style="width:100%; height:100%; object-fit:cover;" />`
-      : (currentUserProfile?.nama_panggilan || nama).charAt(0).toUpperCase();
-  }
 
   // Evaluasi Peran Khusus
-  const isGuest = false;
   const isAlumni = ket.includes("alumni");
   const isNonAktif = role === "non-aktif" || ket.includes("non-aktif");
   const isRestricted = isAlumni || isNonAktif;
@@ -118,14 +102,6 @@ async function initInventarisSession() {
   }
 }
 
-// Menutup jendela modul inventaris secara langsung
-window.tutupModulInventaris = function() {
-  window.close();
-  setTimeout(() => {
-    window.location.href = "../../index.html";
-  }, 150);
-};
-
 window.switchInvTab = function(tabName) {
   // Cegah pembukaan tab usulan bagi yang tidak berhak
   if (tabName === "usulan" && !isPrivilegedUser) {
@@ -143,6 +119,7 @@ window.switchInvTab = function(tabName) {
     b.getAttribute("onclick")?.includes(tabName)
   );
   if (clickedBtn) clickedBtn.classList.add("active");
+
   if (window.lucide) lucide.createIcons();
 };
 
@@ -266,7 +243,7 @@ function renderInventarisTable(items) {
   if (window.lucide) lucide.createIcons();
 }
 
-/* MODAL PREVIEW FOTO BESAR & DETAIL KHUSUS (DIBATASI SESUAI HAK AKSES) */
+/* MODAL PREVIEW FOTO & DETAIL KHUSUS */
 window.bukaDetailBarangModal = function(id) {
   const item = inventarisData.find(b => b.id === id);
   if (!item) return;
@@ -276,7 +253,6 @@ window.bukaDetailBarangModal = function(id) {
   const infoEl = document.getElementById("detail-modal-info");
 
   if (titleEl) titleEl.textContent = item.nama_barang;
-
   if (imgEl) {
     if (item.foto_barang_url) {
       imgEl.src = item.foto_barang_url;
@@ -287,7 +263,6 @@ window.bukaDetailBarangModal = function(id) {
     }
   }
 
-  // Jika Tamu, Alumni, atau Non-Aktif: Batasi hanya menampilkan Kategori & Stok saja
   if (!isPrivilegedUser) {
     if (infoEl) {
       infoEl.innerHTML = `
@@ -297,7 +272,6 @@ window.bukaDetailBarangModal = function(id) {
       `;
     }
   } else {
-    // Jika Anggota Aktif, Pengurus, Admin: Tampilkan semua parameter termasuk rak & kepemilikan
     const formatKedaluwarsa = item.tanggal_kedaluwarsa 
       ? new Date(item.tanggal_kedaluwarsa).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
       : "-";
@@ -368,7 +342,6 @@ window.togglePemilikPribadiField = function() {
 window.cekDuplikasiBarang = async function() {
   const barangId = document.getElementById("form-barang-id")?.value;
   if (barangId) return;
-
   const nama = document.getElementById("form-nama-barang")?.value.trim();
   const kepemilikan = document.getElementById("form-kepemilikan")?.value;
   if (!nama) return;
@@ -376,9 +349,8 @@ window.cekDuplikasiBarang = async function() {
   const match = inventarisData.find(item => 
     item.nama_barang.toLowerCase() === nama.toLowerCase() && item.kepemilikan === kepemilikan
   );
-
   if (match) {
-    const tambahStok = confirm(`Barang "${match.nama_barang}" (${match.kepemilikan}) sudah terdaftar dengan stok ${match.jumlah} ${match.satuan}.\n\nApakah Anda ingin menambahkan stok barang yang sudah ada ini?`);
+    const tambahStok = confirm(`Barang "${match.nama_barang}" (${match.kepemilikan}) sudah terdaftar dengan stok ${match.jumlah} ${match.satuan}.\n\nApakah Anda ingin memperbarui stok barang yang sudah ada ini?`);
     if (tambahStok) {
       window.editBarang(match.id);
     }
@@ -453,6 +425,7 @@ window.handleBarangSubmit = async function(event) {
       keterangan_catatan: catatan,
       updated_at: new Date().toISOString()
     };
+
     if (fotoUrl) payload.foto_barang_url = fotoUrl;
 
     if (barangId) {
@@ -519,7 +492,6 @@ window.hapusBarang = async function(id) {
 
     const { error } = await window.db.from("inventaris_barang").delete().eq("id", id);
     if (error) throw error;
-
     alert("Barang berhasil dihapus dari inventaris.");
     await loadInventarisData();
   } catch (err) {
@@ -528,7 +500,7 @@ window.hapusBarang = async function(id) {
 };
 
 /* --------------------------------------------------------------------------
-   3. TAB 2: PROFIL BANGUNAN & FASILITAS RUANG UKS (BISA DILIHAT SEMUA PERAN)
+   3. TAB 2: PROFIL BANGUNAN & FASILITAS RUANG UKS
 -------------------------------------------------------------------------- */
 async function loadProfilRuangUks() {
   const specsEl = document.getElementById("building-specs");
@@ -540,8 +512,8 @@ async function loadProfilRuangUks() {
   try {
     const { data, error } = await window.db.from("profil_ruang_uks").select("*").limit(1).maybeSingle();
     if (error) throw error;
-
     if (!data) return;
+
     profilRuangData = data;
 
     if (photoContainer) {
@@ -682,19 +654,18 @@ window.handleUpdateBangunanSubmit = async function(event) {
 };
 
 /* --------------------------------------------------------------------------
-   4. TAB 3: USULAN PENGADAAN (KHUSUS ANGGOTA AKTIF, PENGURUS, ADMIN)
+   4. TAB 3: USULAN PENGADAAN
 -------------------------------------------------------------------------- */
 async function loadUsulanData() {
   if (!isPrivilegedUser) return;
-
   const tbody = document.getElementById("tbody-usulan");
   try {
     const { data, error } = await window.db
       .from("inventaris_usulan")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) throw error;
 
+    if (error) throw error;
     usulanData = data || [];
     renderUsulanTable();
   } catch (err) {
@@ -842,6 +813,7 @@ window.handleUsulanSubmit = async function(event) {
       pengusul_id: currentUser.id,
       status: "Menunggu"
     });
+
     if (error) throw error;
 
     alert("Usulan pengadaan berhasil dikirim ke Pembina/Admin!");

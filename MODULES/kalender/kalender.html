@@ -1,125 +1,713 @@
-<div class="agenda-widget-card">
-  <div class="agenda-widget-header">
-    <div class="agenda-brand">
-      <div class="agenda-icon-box">
+<style>
+  /* ==========================================================================
+     ISOLATED CSS - MODUL KALENDER & AGENDA KEGIATAN PMR SPADAN (TEEN-VIBRANT)
+     ========================================================================== */
+  .agenda-module-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #0f172a;
+  }
+
+  /* TOOLBAR HEADER */
+  .agenda-top-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  }
+  .agenda-top-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .agenda-icon-cube {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    color: #059669;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.15);
+  }
+  .agenda-icon-cube svg { width: 22px; height: 22px; }
+  .agenda-top-title h3 {
+    font-size: 15.5px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+  }
+  .agenda-top-title p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+    font-weight: 600;
+  }
+
+  .btn-agenda-add {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #ffffff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+    transition: all 0.2s;
+  }
+  .btn-agenda-add:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35); }
+  .btn-agenda-add svg { width: 16px; height: 16px; }
+
+  /* TATA LETAK UTAMA: KALENDER (KIRI) vs AGENDA MENDATANG (KANAN) */
+  .agenda-main-layout {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  /* KARTU PAPAN KALENDER VISUAL */
+  .cal-board-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cal-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 8px 12px;
+  }
+  .cal-nav-btn {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #1e293b;
+    transition: all 0.15s;
+  }
+  .cal-nav-btn:hover { background: #059669; color: #ffffff; border-color: #059669; }
+  .cal-nav-btn svg { width: 16px; height: 16px; }
+
+  .cal-month-indicator {
+    font-size: 13.5px;
+    font-weight: 900;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cal-month-indicator svg { width: 16px; height: 16px; color: #059669; }
+
+  /* PAPAN PENANGGALAN */
+  .cal-grid-frame {
+    border: 1.5px solid #cbd5e1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+  .cal-weekdays-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 900;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 8px 0;
+    border-bottom: 1.5px solid #cbd5e1;
+  }
+  .cal-weekdays-row .sun { color: #e11d48; }
+  .cal-weekdays-row .sat { color: #2563eb; }
+
+  .cal-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #e2e8f0;
+    gap: 1px;
+  }
+
+  .cal-cell {
+    background: #ffffff;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .cal-cell:hover { background: #e0f2fe; }
+  .cal-cell.empty { background: #fafafa; pointer-events: none; }
+  .cal-cell.is-sun { color: #e11d48; }
+  
+  /* Hari Ini */
+  .cal-cell.today {
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 900;
+    box-shadow: inset 0 0 0 2px #f59e0b;
+  }
+  /* Tanggal Dipilih */
+  .cal-cell.selected {
+    background: #059669 !important;
+    color: #ffffff !important;
+    font-weight: 900;
+  }
+
+  /* Penanda Kegiatan Lucu & Menonjol */
+  .cal-tag-event {
+    margin-top: 4px;
+    background: #fee2e2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+  }
+  .cal-cell.selected .cal-tag-event {
+    background: #fef08a;
+    color: #854d0e;
+    border-color: #facc15;
+  }
+
+  .cal-legend-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    padding-top: 4px;
+  }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .leg-box { width: 10px; height: 10px; border-radius: 3px; }
+  .leg-today { background: #fef3c7; border: 1.5px solid #f59e0b; }
+  .leg-event { background: #fee2e2; border: 1px solid #fecdd3; }
+  .leg-selected { background: #059669; }
+
+  /* KARTU DAFTAR AGENDA (KANAN) */
+  .agenda-list-panel {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .agenda-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.5px solid #f1f5f9;
+    padding-bottom: 10px;
+  }
+  .agenda-panel-title {
+    font-size: 13.5px;
+    font-weight: 900;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .agenda-panel-title svg { width: 16px; height: 16px; color: #059669; }
+  .btn-reset-filter {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-reset-filter:hover { background: #2563eb; color: #ffffff; }
+
+  .agenda-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 520px;
+    padding-right: 4px;
+  }
+
+  .agenda-card-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .agenda-card-item:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .agenda-badge-calendar-box {
+    min-width: 50px;
+    height: 52px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .agenda-badge-calendar-box .day-num {
+    font-size: 17px;
+    font-weight: 900;
+    color: #be123c;
+    line-height: 1;
+  }
+  .agenda-badge-calendar-box .month-str {
+    font-size: 8.5px;
+    font-weight: 900;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .agenda-info-col { flex: 1; min-width: 0; }
+  .agenda-row-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+  }
+  .prio-pill {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .prio-normal { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  .prio-penting { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+  .prio-sangat-penting { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  .prio-wajib { background: #991b1b; color: #ffffff; }
+
+  .kat-pill {
+    font-size: 8.5px;
+    font-weight: 800;
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .agenda-item-title {
+    font-size: 12.5px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .agenda-meta-details {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 10.5px;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 3px;
+  }
+  .agenda-meta-details span { display: inline-flex; align-items: center; gap: 4px; }
+  .agenda-meta-details svg { width: 12px; height: 12px; color: #059669; }
+
+  .agenda-desc-text {
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.35;
+    margin-top: 5px;
+    background: #ffffff;
+    border-left: 3px solid #059669;
+    padding: 4px 8px;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .btn-del-agenda {
+    background: none;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-del-agenda:hover { background: #fee2e2; color: #dc2626; }
+  .btn-del-agenda svg { width: 14px; height: 14px; }
+
+  /* MODAL FORM TAMBAH AGENDA */
+  .agenda-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+    box-sizing: border-box;
+  }
+  .agenda-modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+  .agenda-modal-header {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #ffffff;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .agenda-modal-header h3 {
+    font-size: 14px;
+    font-weight: 900;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .agenda-modal-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .agenda-modal-close:hover { color: #fff; }
+
+  .agenda-modal-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .agenda-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .agenda-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .agenda-form-group label {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+  }
+  .agenda-form-group input,
+  .agenda-form-group select,
+  .agenda-form-group textarea {
+    padding: 9px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    outline: none;
+    background: #ffffff;
+    color: #0f172a;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .agenda-form-group input:focus,
+  .agenda-form-group select:focus,
+  .agenda-form-group textarea:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  }
+
+  .agenda-modal-footer {
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-top: 1.5px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .btn-modal-back {
+    background: #e2e8f0;
+    color: #334155;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-modal-save {
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  /* RESPONSIF HP */
+  @media (max-width: 820px) {
+    .agenda-module-wrapper { padding: 12px 8px; }
+    .agenda-main-layout { grid-template-columns: 1fr; gap: 14px; }
+    .agenda-top-bar { padding: 12px; }
+    .cal-cell { min-height: 42px; font-size: 11px; }
+    .cal-tag-event { font-size: 7.5px; }
+    .agenda-card-item { padding: 10px; gap: 8px; }
+    .agenda-badge-calendar-box { min-width: 44px; height: 46px; }
+    .agenda-badge-calendar-box .day-num { font-size: 15px; }
+    .agenda-item-title { font-size: 12px; }
+    .agenda-form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="agenda-module-wrapper">
+  <!-- TOP BAR JUDUL & AKSI TAMBAH -->
+  <div class="agenda-top-bar">
+    <div class="agenda-top-title">
+      <div class="agenda-icon-cube">
         <i data-lucide="calendar-days"></i>
       </div>
       <div>
-        <h3>Kalender & Agenda Kegiatan Tahunan</h3>
-        <p>Rencana program kerja, jadwal latihan, tugas, dan pengumuman PMR.</p>
+        <h3>Kalender & Agenda Kegiatan</h3>
+        <p>Jadwal latihan, tugas upacara, pengumuman resmi, dan aksi kemanusiaan PMR SPADAN.</p>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <!-- Tombol Tambah Agenda: Muncul Khusus Admin & Pengurus -->
-      <button id="btn-tambah-agenda" class="btn-agenda-action" onclick="window.openTambahAgendaModal()" style="display: none;">
-        <i data-lucide="calendar-plus"></i> Tambah Agenda
-      </button>
-      <button onclick="window.tutupAgendaViewer()" style="background: none; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; color: #64748b; cursor: pointer; font-size: 11px; font-weight: 700;">
-        Tutup
-      </button>
-    </div>
+    <button id="btn-tambah-agenda" class="btn-agenda-add" onclick="window.openTambahAgendaModal()" style="display: none;">
+      <i data-lucide="calendar-plus"></i>
+      <span>Tambah Agenda</span>
+    </button>
   </div>
 
-  <!-- Filter Kategori Agenda -->
-  <div class="agenda-filter-row">
-    <div class="agenda-filter-chips">
-      <button class="chip-filter active" onclick="window.filterAgendaKategori('SEMUA')">Semua</button>
-      <button class="chip-filter" onclick="window.filterAgendaKategori('Pengumuman')">Pengumuman</button>
-      <button class="chip-filter" onclick="window.filterAgendaKategori('Latihan Rutin')">Latihan</button>
-      <button class="chip-filter" onclick="window.filterAgendaKategori('Tugas Upacara')">Upacara</button>
-      <button class="chip-filter" onclick="window.filterAgendaKategori('Lomba PMR')">Lomba</button>
-    </div>
-    <input type="month" id="filter-agenda-bulan" class="agenda-month-picker" onchange="window.renderAgendaList()" />
-  </div>
+  <!-- LAYOUT UTAMA: KALENDER VISUAL vs AGENDA MENDATANG -->
+  <div class="agenda-main-layout">
+    <!-- KOLOM KIRI: PAPAN PENANGGALAN VISUAL (DEFAULT BULAN BERJALAN) -->
+    <div class="cal-board-card">
+      <div class="cal-nav-bar">
+        <button class="cal-nav-btn" onclick="window.changeModuleCalMonth(-1)" title="Bulan Sebelumnya">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <div class="cal-month-indicator">
+          <i data-lucide="calendar"></i>
+          <span id="cal-module-month-year">Bulan Tahun</span>
+        </div>
+        <button class="cal-nav-btn" onclick="window.changeModuleCalMonth(1)" title="Bulan Berikutnya">
+          <i data-lucide="chevron-right"></i>
+        </button>
+      </div>
 
-  <!-- Kontainer Daftar Agenda -->
-  <div id="agenda-items-container" class="agenda-list-grid">
-    <div style="text-align: center; color: #94a3b8; padding: 25px 10px; font-size: 12px;">
-      Memuat agenda kegiatan...
+      <div class="cal-grid-frame">
+        <div class="cal-weekdays-row">
+          <span class="sun">Min</span>
+          <span>Sen</span>
+          <span>Sel</span>
+          <span>Rab</span>
+          <span>Kam</span>
+          <span>Jum</span>
+          <span class="sat">Sab</span>
+        </div>
+        <div class="cal-days-grid" id="cal-module-days-box"></div>
+      </div>
+
+      <div class="cal-legend-footer">
+        <div class="leg-item"><div class="leg-box leg-today"></div> Hari Ini</div>
+        <div class="leg-item"><div class="leg-box leg-event"></div> Ada Kegiatan</div>
+        <div class="leg-item"><div class="leg-box leg-selected"></div> Tanggal Dipilih</div>
+      </div>
+    </div>
+
+    <!-- KOLOM KANAN: DAFTAR AGENDA (DEFAULT: SEMUA AGENDA YANG AKAN DIHADAPI) -->
+    <div class="agenda-list-panel">
+      <div class="agenda-panel-header">
+        <div class="agenda-panel-title">
+          <i data-lucide="sparkles"></i>
+          <span id="agenda-view-heading">Agenda yang Akan Dihadapi</span>
+        </div>
+        <button class="btn-reset-filter" id="btn-reset-agenda-view" onclick="window.resetAgendaToUpcoming()" style="display: none;">
+          Lihat Semua Mendatang
+        </button>
+      </div>
+
+      <!-- WADAH DAFTAR KARTU AGENDA -->
+      <div id="agenda-items-container" class="agenda-cards-container">
+        <div style="text-align: center; color: #94a3b8; padding: 35px 10px; font-size: 12px; font-weight: 600;">
+          Memeriksa jadwal kegiatan...
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL TAMBAH / EDIT AGENDA KEGIATAN -->
-<div class="modal-backdrop" id="modal-tambah-agenda" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
-  <div class="modal-card" style="background: white; width: 100%; max-width: 500px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-    <div style="background: var(--maroon); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
-      <h3 style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="calendar"></i>
-        <span>Tambah Agenda Kegiatan</span>
+<!-- MODAL TAMBAH AGENDA -->
+<div class="agenda-modal-backdrop" id="modal-tambah-agenda">
+  <div class="agenda-modal-card">
+    <div class="agenda-modal-header">
+      <h3>
+        <i data-lucide="calendar-plus" style="width: 17px; height: 17px;"></i>
+        <span>Tambah Agenda Baru</span>
       </h3>
-      <button onclick="window.closeTambahAgendaModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+      <button type="button" class="agenda-modal-close" onclick="window.closeTambahAgendaModal()">&times;</button>
     </div>
-    <form id="form-tambah-agenda" onsubmit="window.handleTambahAgendaSubmit(event)" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 11px; max-height: 82vh; overflow-y: auto;">
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Nama Kegiatan / Judul Pengumuman *</label>
-        <input type="text" id="agenda-judul" placeholder="Contoh: Latihan Rutin Pertolongan Pertama" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Jenis Kegiatan *</label>
-          <select id="agenda-kategori" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
-            <option value="Pengumuman">Pengumuman</option>
-            <option value="Latihan Rutin">Latihan Rutin</option>
-            <option value="Tugas Upacara">Tugas Upacara</option>
-            <option value="Bakti Sosial">Bakti Sosial</option>
-            <option value="Lomba PMR">Lomba PMR</option>
-            <option value="Diklat/Pelatihan">Diklat/Pelatihan</option>
-            <option value="Rapat Organisasi">Rapat Organisasi</option>
-            <option value="Peringatan Hari Besar">Peringatan Hari Besar</option>
-            <option value="Lainnya">Lainnya</option>
-          </select>
+    <form id="form-tambah-agenda" onsubmit="window.handleTambahAgendaSubmit(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+      <div class="agenda-modal-body">
+        <div class="agenda-form-group">
+          <label>Judul Kegiatan / Pengumuman *</label>
+          <input type="text" id="agenda-judul" placeholder="Contoh: Latihan Rutin Pertolongan Pertama" required />
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Prioritas *</label>
-          <select id="agenda-prioritas" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
-            <option value="Normal">Normal</option>
-            <option value="Penting">Penting</option>
-            <option value="Sangat Penting">Sangat Penting</option>
-            <option value="Wajib">Wajib</option>
-          </select>
+        <div class="agenda-form-grid">
+          <div class="agenda-form-group">
+            <label>Kategori *</label>
+            <select id="agenda-kategori" required>
+              <option value="Pengumuman">Pengumuman</option>
+              <option value="Latihan Rutin">Latihan Rutin</option>
+              <option value="Tugas Upacara">Tugas Upacara</option>
+              <option value="Bakti Sosial">Bakti Sosial</option>
+              <option value="Lomba PMR">Lomba PMR</option>
+              <option value="Diklat/Pelatihan">Diklat / Pelatihan</option>
+              <option value="Rapat Organisasi">Rapat Organisasi</option>
+              <option value="Peringatan Hari Besar">Hari Besar</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div class="agenda-form-group">
+            <label>Prioritas *</label>
+            <select id="agenda-prioritas" required>
+              <option value="Normal">Normal</option>
+              <option value="Penting">Penting</option>
+              <option value="Sangat Penting">Sangat Penting</option>
+              <option value="Wajib">Wajib</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="agenda-form-grid">
+          <div class="agenda-form-group">
+            <label>Tanggal Mulai *</label>
+            <input type="date" id="agenda-tgl-mulai" required />
+          </div>
+          <div class="agenda-form-group">
+            <label>Tanggal Selesai (Opsional)</label>
+            <input type="date" id="agenda-tgl-selesai" />
+          </div>
+        </div>
+
+        <div class="agenda-form-grid">
+          <div class="agenda-form-group">
+            <label>Waktu (Jam)</label>
+            <input type="text" id="agenda-waktu" placeholder="Contoh: 08:00 - 11:30 WITA" />
+          </div>
+          <div class="agenda-form-group">
+            <label>Lokasi / Tempat</label>
+            <input type="text" id="agenda-lokasi" placeholder="Contoh: Lapangan Utama / UKS" />
+          </div>
+        </div>
+
+        <div class="agenda-form-group">
+          <label>Keterangan / Perlengkapan</label>
+          <textarea id="agenda-keterangan" rows="2" placeholder="Catatan tugas, pakaian seragam, atau hal penting..."></textarea>
+        </div>
+
+        <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="agenda-tampilkan-dashboard" style="width: 16px; height: 16px; cursor: pointer;" />
+          <label for="agenda-tampilkan-dashboard" style="font-size: 11.5px; font-weight: 700; color: #334155; cursor: pointer;">
+            Tampilkan kegiatan ini di banner penting Dashboard utama
+          </label>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tanggal Mulai *</label>
-          <input type="date" id="agenda-tgl-mulai" required style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Tanggal Selesai (Opsional)</label>
-          <input type="date" id="agenda-tgl-selesai" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Waktu Kegiatan</label>
-          <input type="text" id="agenda-waktu" placeholder="Contoh: 08:00 - 11:30 WITA" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <label style="font-size: 11px; font-weight: 600; color: #64748b;">Lokasi / Tempat</label>
-          <input type="text" id="agenda-lokasi" placeholder="Contoh: Lapangan Utama / Ruang UKS" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;" />
-        </div>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Keterangan / Rincian Kegiatan</label>
-        <textarea id="agenda-keterangan" rows="2" placeholder="Catatan penting, perlengkapan yang dibawa, atau seragam..." style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;"></textarea>
-      </div>
-
-      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="agenda-tampilkan-dashboard" style="width: 16px; height: 16px; cursor: pointer;" />
-        <label for="agenda-tampilkan-dashboard" style="font-size: 11.5px; font-weight: 600; color: #334155; cursor: pointer;">
-          Tampilkan kegiatan ini di halaman Dashboard utama
-        </label>
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-        <button type="button" onclick="window.closeTambahAgendaModal()" style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; background: #e2e8f0; cursor: pointer;">Batal</button>
-        <button type="submit" id="btn-save-agenda" style="padding: 8px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; background: var(--maroon); color: white; cursor: pointer;">Simpan Agenda</button>
+      <div class="agenda-modal-footer">
+        <button type="button" class="btn-modal-back" onclick="window.closeTambahAgendaModal()">Batal</button>
+        <button type="submit" id="btn-save-agenda" class="btn-modal-save">Simpan Agenda</button>
       </div>
     </form>
   </div>

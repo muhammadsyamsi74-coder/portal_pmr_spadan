@@ -9,258 +9,505 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
   <style>
     :root {
-      --maroon-primary: #7f1d1d;
-      --maroon-dark: #580c0c;
-      --navy-primary: #0f172a;
-      --navy-dark: #020617;
-      --gold: #d97706;
+      --maroon-primary: #881337;
+      --maroon-dark: #4c0519;
+      --navy-primary: #1e1b4b;
+      --navy-dark: #0f172a;
+      --gold: #f59e0b;
       --canvas: #f8fafc;
       --border: #e2e8f0;
-      --text: #1e293b;
+      --text: #0f172a;
       --white: #ffffff;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--canvas); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
-
-    /* =========================================
-       FLOATING HEADER SESUAI GAMBAR REFERENSI
-       ========================================= */
-    .module-header {
-      position: sticky; top: 12px; margin: 12px 16px; height: 62px;
-      background: var(--maroon-primary); border-radius: 14px;
-      display: flex; flex-direction: row; justify-content: space-between; align-items: center;
-      padding: 0 16px; box-shadow: 0 4px 18px rgba(127, 29, 29, 0.15); z-index: 900;
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
     }
 
-    .header-left { display: flex; align-items: center; gap: 12px; }
-    .btn-back-portal {
-      background: rgba(255, 255, 255, 0.15); color: var(--white);
-      border: 1px solid rgba(255, 255, 255, 0.25); padding: 6px 12px;
-      border-radius: 8px; font-size: 11.5px; font-weight: 700;
-      display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-back-portal:hover { background: rgba(255, 255, 255, 0.25); }
-    .btn-back-portal svg { width: 15px; height: 15px; }
-    .brand-divider { width: 1px; height: 24px; background: rgba(255, 255, 255, 0.25); }
-    .brand-info h1 { font-size: 13px; font-weight: 800; color: var(--white); letter-spacing: 0.5px; line-height: 1.1; }
-    .brand-info p { font-size: 9.5px; color: rgba(255, 255, 255, 0.7); font-weight: 600; letter-spacing: 0.3px; }
-
-    /* Identitas User Kanan */
-    .header-right { display: flex; align-items: center; }
-    .user-chip { display: flex; align-items: center; gap: 10px; }
-    .user-text { text-align: right; line-height: 1.2; }
-    .user-text .name { font-size: 11.5px; font-weight: 700; color: var(--white); display: block; }
-    .user-text .role { font-size: 9.5px; font-weight: 600; color: rgba(255, 255, 255, 0.7); }
-    .user-avatar {
-      width: 36px; height: 36px; border-radius: 9px;
-      background: var(--white); color: var(--maroon-primary);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 13px; overflow: hidden;
-      border: 1.5px solid rgba(255, 255, 255, 0.3);
+    body { 
+      background-color: var(--canvas); 
+      color: var(--text); 
+      min-height: 100vh; 
+      padding: 12px 0 40px 0; 
     }
 
-    .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
-
-    .kta-toolbar {
-      background: #ffffff; padding: 16px 20px; border-radius: 14px; border: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;
-      margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-    }
-    .kta-toolbar h2 { font-size: 16px; font-weight: 800; color: var(--maroon-primary); display: flex; align-items: center; gap: 8px; }
-    .filter-group { display: flex; align-items: center; gap: 10px; }
-    .filter-group select, .filter-group input {
-      padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12.5px; outline: none; background: #fff;
+    .container { 
+      max-width: 1100px; 
+      margin: 0 auto; 
+      padding: 0 16px; 
     }
 
+    /* TOOLBAR RAMAH REMAJA: BERSIH, RINGKAS, & FRESH */
+    .kta-toolbar-clean {
+      background: #ffffff;
+      padding: 12px 16px;
+      border-radius: 16px;
+      border: 1.5px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .toolbar-info-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+    }
+    .toolbar-info-chip svg { 
+      width: 18px; 
+      height: 18px; 
+      color: #be123c; 
+    }
+
+    .filter-group { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      flex-wrap: wrap; 
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .filter-group input {
+      padding: 8px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      background: #ffffff;
+      min-width: 200px;
+      transition: all 0.2s;
+    }
+    .filter-group input:focus { 
+      border-color: #be123c; 
+      box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.1); 
+    }
+
+    .filter-group select {
+      padding: 8px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
+      background: #ffffff;
+      color: #0f172a;
+    }
+
+    /* KISI KARTU KTA */
     .kta-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 24px;
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(490px, 1fr)); 
+      gap: 22px;
     }
-    @media (max-width: 550px) {
+
+    @media (max-width: 580px) {
       .kta-grid { grid-template-columns: 1fr; }
-      .user-text { display: none; }
+      .filter-group input { min-width: 100%; }
+      .card-preview-pair { flex-direction: column; }
     }
 
     .kta-item-card {
-      background: #ffffff; border-radius: 16px; border: 1px solid var(--border); padding: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 14px;
+      background: #ffffff; 
+      border-radius: 20px; 
+      border: 1.5px solid #e2e8f0; 
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); 
+      display: flex; 
+      flex-direction: column; 
+      gap: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    .kta-item-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      border-color: #cbd5e1;
+    }
+
     .card-preview-pair {
-      display: flex; flex-direction: row; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap;
+      display: flex; 
+      flex-direction: row; 
+      gap: 16px; 
+      justify-content: center; 
+      align-items: center; 
+      flex-wrap: wrap;
     }
 
-    /* KARTU CR-80 (STANDAR ID CARD) */
+    /* =========================================================
+       DESAIN KARTU STANDAR CR-80 (LUCU, CERIA & PROFESIONAL)
+       ========================================================= */
     .id-card {
-      width: 240px; height: 395px;
-      border-radius: 12px; overflow: hidden; position: relative;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.15); border: 1px solid #cbd5e1;
-      display: flex; flex-direction: column; justify-content: space-between;
-      background: #ffffff; flex-shrink: 0;
+      width: 236px; 
+      height: 388px;
+      border-radius: 16px; 
+      overflow: hidden; 
+      position: relative;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14); 
+      border: 1.5px solid #cbd5e1;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between;
+      background: #ffffff; 
+      flex-shrink: 0;
+      user-select: none;
     }
 
-    /* ================= SISI DEPAN ANGGOTA REGULER ================= */
+    /* SISI DEPAN ANGGOTA */
     .id-card-front {
       background: #ffffff;
-      display: flex; flex-direction: column; justify-content: space-between;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between;
       position: relative;
     }
+
     .front-header {
       background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon-primary) 100%);
-      color: #fff; text-align: center; padding: 8px 6px; border-bottom: 3px solid var(--gold);
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      color: #fff; 
+      text-align: center; 
+      padding: 10px 8px; 
+      border-bottom: 3.5px solid var(--gold);
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 3px;
     }
+
     .header-logos-row {
-      display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px; 
+      margin-bottom: 2px;
     }
     .header-logo-box {
-      width: 28px; height: 28px; object-fit: contain; background: #fff; border-radius: 6px; padding: 2px;
+      width: 28px; 
+      height: 28px; 
+      object-fit: contain; 
+      background: #fff; 
+      border-radius: 8px; 
+      padding: 2px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     }
-    .front-header h3 { font-size: 10px; font-weight: 800; letter-spacing: 0.4px; line-height: 1.15; }
-    .front-header p { font-size: 7.5px; color: rgba(255,255,255,0.85); font-weight: 600; }
+    .front-header h3 { 
+      font-size: 10px; 
+      font-weight: 900; 
+      letter-spacing: 0.5px; 
+      line-height: 1.15; 
+      color: #ffffff;
+    }
+    .front-header p { 
+      font-size: 7.5px; 
+      color: #ffe4e6; 
+      font-weight: 700; 
+      letter-spacing: 0.3px;
+    }
 
     .front-body {
-      padding: 8px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; justify-content: center; gap: 5px; position: relative;
+      padding: 8px 10px; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      text-align: center; 
+      flex: 1; 
+      justify-content: center; 
+      gap: 6px; 
+      position: relative;
     }
-    
+
+    /* Lencana Golongan Darah Lucu & Menonjol */
     .blood-badge-floating {
-      position: absolute; top: 4px; right: 8px;
-      background: #dc2626; color: #ffffff;
-      border: 2px solid #ffffff; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
-      border-radius: 8px; padding: 3px 7px; text-align: center;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: absolute; 
+      top: 4px; 
+      right: 8px;
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); 
+      color: #ffffff;
+      border: 2px solid #ffffff; 
+      box-shadow: 0 3px 10px rgba(225, 29, 72, 0.35);
+      border-radius: 10px; 
+      padding: 3px 8px; 
+      text-align: center;
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
       z-index: 5;
     }
-    .blood-badge-floating small { font-size: 6.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
-    .blood-badge-floating b { font-size: 13px; font-weight: 900; line-height: 1; }
+    .blood-badge-floating small { 
+      font-size: 6.5px; 
+      font-weight: 800; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      opacity: 0.9; 
+    }
+    .blood-badge-floating b { 
+      font-size: 13px; 
+      font-weight: 900; 
+      line-height: 1; 
+    }
 
     .front-photo {
-      width: 82px; height: 105px; border-radius: 8px; object-fit: cover; object-position: top;
-      border: 2px solid var(--maroon-primary); background: #f1f5f9; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      width: 84px; 
+      height: 106px; 
+      border-radius: 12px; 
+      object-fit: cover; 
+      object-position: top;
+      border: 2.5px solid var(--maroon-primary); 
+      background: #f1f5f9; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
-    
+
     .photo-placeholder-box {
-      width: 82px; height: 105px; border-radius: 8px;
-      border: 2px dashed #cbd5e1; background: #f8fafc;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 6px; text-align: center; color: #64748b;
+      width: 84px; 
+      height: 106px; 
+      border-radius: 12px;
+      border: 2px dashed #cbd5e1; 
+      background: #f8fafc;
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      padding: 6px; 
+      text-align: center; 
+      color: #64748b;
     }
     .photo-placeholder-box i { width: 22px; height: 22px; color: #94a3b8; margin-bottom: 4px; }
-    .photo-placeholder-box span { font-size: 7px; font-weight: 700; line-height: 1.2; }
+    .photo-placeholder-box span { font-size: 7.5px; font-weight: 700; line-height: 1.2; }
 
-    .front-name { font-size: 12px; font-weight: 800; color: #0f172a; line-height: 1.2; text-transform: uppercase; margin-top: 2px; max-width: 95%; }
+    .front-name { 
+      font-size: 11.5px; 
+      font-weight: 900; 
+      color: #0f172a; 
+      line-height: 1.2; 
+      text-transform: uppercase; 
+      margin-top: 2px; 
+      max-width: 95%; 
+    }
+
     .front-role-badge {
-      background: #fef2f2; color: var(--maroon-primary); border: 1px solid #fecaca;
-      font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+      background: #ffe4e6; 
+      color: #be123c; 
+      border: 1px solid #fecdd3;
+      font-size: 8.5px; 
+      font-weight: 800; 
+      padding: 2px 9px; 
+      border-radius: 6px; 
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
 
     .front-footer {
-      padding: 8px 10px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px; 
+      background: #f8fafc; 
+      border-top: 1.5px solid #e2e8f0;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 8px;
     }
-    .front-qr { 
-      width: 62px; height: 62px;
-      border-radius: 6px; background: #fff; padding: 3px; border: 1px solid #cbd5e1; flex-shrink: 0;
-    }
-    .front-id-col { text-align: right; flex: 1; }
-    .front-id-col span { font-size: 7.5px; color: #64748b; font-weight: 700; display: block; }
-    .front-id-col b { font-size: 9px; color: var(--maroon-primary); font-weight: 800; word-break: break-all; }
 
-    /* ================= SISI BELAKANG ANGGOTA REGULER ================= */
+    .front-qr { 
+      width: 60px; 
+      height: 60px;
+      border-radius: 8px; 
+      background: #fff; 
+      padding: 3px; 
+      border: 1.5px solid #cbd5e1; 
+      flex-shrink: 0;
+    }
+
+    .front-id-col { text-align: right; flex: 1; }
+    .front-id-col span { font-size: 7.5px; color: #64748b; font-weight: 800; display: block; }
+    .front-id-col b { font-size: 9.5px; color: var(--maroon-primary); font-weight: 900; word-break: break-all; }
+
+    /* SISI BELAKANG ANGGOTA */
     .id-card-back {
       background: #ffffff;
-      display: flex; flex-direction: column; justify-content: space-between;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between;
     }
-    .back-header {
-      background: var(--maroon-primary); color: #fff; text-align: center; padding: 8px 6px;
-      border-bottom: 3px solid var(--gold);
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
-    }
-    .back-header h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
-    .back-body {
-      padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: center;
-    }
-    .tri-bakti-box {
-      background: #fdf2f2; border: 1px dashed #fca5a5; border-radius: 6px; padding: 8px;
-    }
-    .tri-bakti-box h4 { font-size: 9px; font-weight: 800; color: var(--maroon-primary); text-align: center; margin-bottom: 6px; }
-    .tri-bakti-box ol { padding-left: 14px; font-size: 7.5px; color: #334155; line-height: 1.4; font-weight: 600; }
-    .tri-bakti-box li { margin-bottom: 4px; }
 
-    .prinsip-title { font-size: 8px; font-weight: 800; color: #0f172a; text-align: center; margin-top: 2px; }
-    .prinsip-grid {
-      display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; font-size: 6.8px; font-weight: 700; color: #475569;
+    .back-header {
+      background: var(--maroon-primary); 
+      color: #fff; 
+      text-align: center; 
+      padding: 8px 6px;
+      border-bottom: 3.5px solid var(--gold);
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 2px;
     }
-    .prinsip-grid span { background: #f1f5f9; padding: 2px 4px; border-radius: 3px; }
+    .back-header h4 { font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+
+    .back-body {
+      padding: 10px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+      flex: 1; 
+      justify-content: center;
+    }
+
+    .tri-bakti-box {
+      background: #fff1f2; 
+      border: 1.5px dashed #fecdd3; 
+      border-radius: 8px; 
+      padding: 8px;
+    }
+    .tri-bakti-box h4 { 
+      font-size: 8.5px; 
+      font-weight: 900; 
+      color: var(--maroon-primary); 
+      text-align: center; 
+      margin-bottom: 5px; 
+    }
+    .tri-bakti-box ol { 
+      padding-left: 14px; 
+      font-size: 7.5px; 
+      color: #334155; 
+      line-height: 1.35; 
+      font-weight: 700; 
+    }
+    .tri-bakti-box li { margin-bottom: 3px; }
+
+    .prinsip-title { 
+      font-size: 8px; 
+      font-weight: 900; 
+      color: #0f172a; 
+      text-align: center; 
+      margin-top: 2px; 
+    }
+    .prinsip-grid {
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 3px; 
+      justify-content: center; 
+      font-size: 6.8px; 
+      font-weight: 800; 
+      color: #475569;
+    }
+    .prinsip-grid span { 
+      background: #f1f5f9; 
+      padding: 2px 5px; 
+      border-radius: 4px; 
+    }
 
     .back-footer {
-      padding: 10px; border-top: 1px solid #e2e8f0; text-align: center; background: #fafafa;
+      padding: 10px; 
+      border-top: 1.5px solid #e2e8f0; 
+      text-align: center; 
+      background: #f8fafc;
     }
-    .back-footer p { font-size: 7.5px; color: #64748b; font-weight: 600; line-height: 1.3; }
-    .back-footer b { font-size: 8.5px; color: #0f172a; }
+    .back-footer p { font-size: 7.5px; color: #64748b; font-weight: 700; line-height: 1.3; }
+    .back-footer b { font-size: 8.5px; color: #0f172a; font-weight: 900; }
 
-    /* ================= DESAIN KHUSUS ALUMNI (NAVY & SILVER) ================= */
+    /* ================= SISI KARTU ALUMNI (NAVY-COOL) ================= */
     .id-card.alumni-card {
       border: 2px solid #94a3b8;
-      box-shadow: 0 4px 15px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 8px 24px rgba(30, 27, 75, 0.22);
     }
     .alumni-card .front-header {
       background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-primary) 100%);
-      border-bottom: 3px solid #cbd5e1;
+      border-bottom: 3.5px solid #93c5fd;
     }
-    .alumni-card .front-header p {
-      color: #93c5fd;
-    }
-    .alumni-card .front-photo {
-      border-color: var(--navy-primary);
-    }
+    .alumni-card .front-header p { color: #bfdbfe; }
+    .alumni-card .front-photo { border-color: var(--navy-primary); }
+
     .alumni-watermark {
-      position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 42px; font-weight: 900; color: rgba(15, 23, 42, 0.06); letter-spacing: 4px;
-      pointer-events: none; z-index: 1; user-select: none;
-    }
-    .alumni-banner-badge {
-      background: var(--navy-primary); color: #ffffff; border: 1px solid #475569;
-      font-size: 9.5px; font-weight: 900; letter-spacing: 1px; padding: 3px 10px;
-      border-radius: 4px; text-transform: uppercase; box-shadow: 0 2px 6px rgba(15,23,42,0.25);
-    }
-    .alumni-card .front-footer {
-      background: #f1f5f9; border-top: 1px solid #cbd5e1;
-    }
-    .alumni-card .front-id-col b {
-      color: var(--navy-primary);
-    }
-    .alumni-card .back-header {
-      background: var(--navy-primary);
-      border-bottom: 3px solid #cbd5e1;
-    }
-    .alumni-card .tri-bakti-box {
-      background: #f8fafc; border: 1px dashed #94a3b8;
-    }
-    .alumni-card .tri-bakti-box h4 {
-      color: var(--navy-primary);
+      position: absolute; 
+      top: 48%; 
+      left: 50%; 
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 42px; 
+      font-weight: 900; 
+      color: rgba(30, 27, 75, 0.05); 
+      letter-spacing: 4px;
+      pointer-events: none; 
+      z-index: 1; 
+      user-select: none;
     }
 
-    .card-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+    .alumni-banner-badge {
+      background: var(--navy-primary); 
+      color: #ffffff; 
+      border: 1px solid #475569;
+      font-size: 9px; 
+      font-weight: 900; 
+      letter-spacing: 0.8px; 
+      padding: 2px 10px;
+      border-radius: 6px; 
+      text-transform: uppercase; 
+      box-shadow: 0 2px 6px rgba(15,23,42,0.2);
+    }
+
+    .alumni-card .front-footer { background: #f1f5f9; border-top: 1.5px solid #cbd5e1; }
+    .alumni-card .front-id-col b { color: var(--navy-primary); }
+    .alumni-card .back-header { background: var(--navy-primary); border-bottom: 3.5px solid #93c5fd; }
+    .alumni-card .tri-bakti-box { background: #f8fafc; border: 1.5px dashed #94a3b8; }
+    .alumni-card .tri-bakti-box h4 { color: var(--navy-primary); }
+
+    /* TOMBOL CETAK KTA */
+    .card-actions { 
+      display: flex; 
+      justify-content: flex-end; 
+      gap: 10px; 
+      margin-top: 4px; 
+    }
     .btn-print-kta {
-      background: var(--maroon-primary); color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px;
-      font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-      transition: background 0.2s;
+      background: linear-gradient(135deg, #be123c 0%, #881337 100%); 
+      color: #ffffff; 
+      border: none; 
+      padding: 9px 18px; 
+      border-radius: 10px;
+      font-size: 12px; 
+      font-weight: 800; 
+      cursor: pointer; 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 6px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(190, 18, 60, 0.2);
     }
-    .btn-print-kta:hover { background: var(--maroon-dark); }
+    .btn-print-kta:hover { 
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(190, 18, 60, 0.3);
+    }
     .btn-print-kta.btn-alumni {
-      background: var(--navy-primary);
+      background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+      box-shadow: 0 4px 12px rgba(30, 27, 75, 0.25);
     }
-    .btn-print-kta.btn-alumni:hover {
-      background: var(--navy-dark);
+    .btn-print-kta.btn-alumni:hover { 
+      background: #0f172a; 
     }
 
     .alert-upload-photo {
-      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px;
-      font-size: 11.5px; color: #b45309; display: flex; align-items: center; gap: 10px; font-weight: 600; margin-bottom: 12px;
+      background: #fffbeb; 
+      border: 1.5px solid #fde68a; 
+      border-radius: 14px; 
+      padding: 12px 16px;
+      font-size: 12px; 
+      color: #b45309; 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      font-weight: 700; 
+      margin-bottom: 14px;
     }
 
     #print-area { display: none; }
@@ -276,39 +523,14 @@
   </style>
 </head>
 <body>
-
-  <!-- FLOATING HEADER SESUAI GAMBAR REFERENSI -->
-  <header class="module-header no-print">
-    <div class="header-left">
-      <button class="btn-back-portal" onclick="window.close()" title="Tutup Modul">
-        <i data-lucide="arrow-left"></i>
-        <span>Tutup</span>
-      </button>
-      <div class="brand-divider"></div>
-      <div class="brand-info">
-        <h1>KARTU TANDA ANGGOTA</h1>
-        <p>PMR SPADAN BALIKPAPAN</p>
-      </div>
-    </div>
-
-    <div class="header-right">
-      <div class="user-chip">
-        <div class="user-text">
-          <span id="kta-user-name" class="name">Memuat...</span>
-          <span id="kta-user-role" class="role">Petugas</span>
-        </div>
-        <div class="user-avatar" id="kta-user-avatar">?</div>
-      </div>
-    </div>
-  </header>
-
-  <div class="container no-print">
+  <div class="container">
     <div id="alert-photo-container"></div>
 
-    <div class="kta-toolbar">
-      <div>
-        <h2><i data-lucide="badge-check"></i> Kartu Tanda Anggota (KTA) & Alumni</h2>
-        <p style="font-size: 11.5px; color: #64748b; margin-top: 3px;">Kartu identitas dua sisi siap cetak berstandar Palang Merah Remaja.</p>
+    <!-- TOOLBAR SEARCH & FILTER BERSIH (TANPA JUDUL GANDA) -->
+    <div class="kta-toolbar-clean">
+      <div class="toolbar-info-chip">
+        <i data-lucide="badge-check"></i>
+        <span>Pencetakan Kartu Identitas Resmi Relawan</span>
       </div>
       <div class="filter-group" id="kta-filter-wrapper">
         <input type="text" id="kta-search" placeholder="Cari nama anggota/alumni..." onkeyup="window.filterKtaData()" />
@@ -320,8 +542,9 @@
       </div>
     </div>
 
+    <!-- WADAH DAFTAR KTA -->
     <div id="kta-grid-list" class="kta-grid">
-      <div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 40px; font-weight: 600;">
+      <div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 40px; font-weight: 700; font-size: 13px;">
         Menghubungkan ke basis data anggota...
       </div>
     </div>

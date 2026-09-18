@@ -1,154 +1,217 @@
-// 3 Aplikasi Mandiri (Buka di Tab Baru)
-window.UTILITAS_TAB_BARU = [
-  {
-    id: "inventaris-uks",
-    nama: "Inventaris Barang",
-    kategori: "tab-baru",
-    ikon: "boxes",
-    warnaAksen: "#b91c1c",
-    warnaBg: "#fef2f2",
-    targetUrl: "modules/inventaris/index.html",
-    aksesMinimal: "guest"
-  },
-  {
-    id: "pelaporan-kegiatan",
-    nama: "Pelaporan Kegiatan",
-    kategori: "tab-baru",
-    ikon: "file-text",
-    warnaAksen: "#2563eb",
-    warnaBg: "#eff6ff",
-    targetUrl: "modules/pelaporan/index.html",
-    aksesMinimal: "guest"
-  },
-  {
-    id: "cetak-kta",
-    nama: "Cetak KTA",
-    kategori: "tab-baru",
-    ikon: "id-card",
-    warnaAksen: "#7c3aed",
-    warnaBg: "#f5f3ff",
-    targetUrl: "modules/kta/index.html",
-    aksesMinimal: "anggota"
-  }
-];
+/**
+ * ==============================================================================
+ * CONTROLLER MODUL UTILITY - PORTAL PMR SPADAN
+ * Lengkap:
+ * - 5 Modul Utama dengan Ikon Gambar Resmi Supabase (Squircle Android Style)
+ * - Pemuatan Latar Belakang (Preload) & Fallback ke Lucide Icon jika gagal
+ * - Mode Penampil Eksklusif Dalam Aplikasi (In-App Viewport)
+ * ==============================================================================
+ */
 
-window.UTILITAS_REGISTRY = [];
-window.isKalenderLoaded = false;
-window.isMateriLoaded = false;
+window.ACTIVE_UTILITY_KEY = null;
+window.ACTIVE_UTILITY_URL = null;
+
+// Konfigurasi Ikon Gambar 5 Tools Resmi Supabase
+window.CORE_TOOL_ICONS = {
+  inventaris: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20inventaris%20barang.png",
+  kalender: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/kalender%20dan%20agenda.png",
+  kta: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20KTA%20PMR.png",
+  materi: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20pustaka%20materi.png",
+  pelaporan: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20laporan%20kegaitan.png"
+};
+
+// Peta URL & Konfigurasi 5 Modul Utama
+window.CORE_UTILITY_MODULES = {
+  inventaris: {
+    title: "Modul Inventaris & UKS",
+    url: "modules/inventaris/index.html",
+    type: "iframe",
+    akses: "guest"
+  },
+  kalender: {
+    title: "Modul Kalender & Agenda Tahunan",
+    url: "modules/kalender/kalender.html",
+    script: "modules/kalender/kalender.js",
+    initFn: "initKalenderModule",
+    type: "inline",
+    akses: "guest"
+  },
+  kta: {
+    title: "Modul Cetak Kartu Tanda Anggota (KTA)",
+    url: "modules/kta/index.html",
+    type: "iframe",
+    akses: "anggota"
+  },
+  materi: {
+    title: "Pustaka Materi & Dokumen Belajar",
+    url: "modules/materi/materi.html",
+    script: "modules/materi/materi.js",
+    initFn: "initMateriModule",
+    type: "inline",
+    akses: "guest"
+  },
+  pelaporan: {
+    title: "Modul Pelaporan Administrasi Resmi",
+    url: "modules/pelaporan/index.html",
+    type: "iframe",
+    akses: "anggota"
+  }
+};
+
+window.DYNAMIC_UTILITY_LINKS = [];
 
 /* ==============================================================================
-   1. INISIALISASI MENU UTILITAS
+   1. INISIALISASI MENU UTILITY & PEMUATAN IKON LATAR BELAKANG
    ============================================================================== */
 window.renderUtilitasGrid = async function() {
-  await window.renderAplikasiTabBaruGrid();
-};
+  const btnTambah = document.getElementById("btn-tambah-link-app");
+  const userRole = (window.activeUserProfile?.jabatan || "").toLowerCase();
+  const ket = (window.activeUserProfile?.keterangan_jabatan || "").toLowerCase();
+  const isAdmin = userRole === "admin" || ket.includes("pembina");
 
-window.switchUtilitasSection = function(sectionKey) {
-  document.querySelectorAll(".util-tab-btn").forEach(btn => btn.classList.remove("active"));
-  document.querySelectorAll(".util-pane").forEach(pane => pane.classList.remove("active"));
-
-  if (sectionKey === "internal") {
-    document.getElementById("section-util-internal")?.classList.add("active");
-  } else {
-    document.getElementById("section-util-tab-baru")?.classList.add("active");
+  if (btnTambah) {
+    btnTambah.style.display = isAdmin ? "inline-flex" : "none";
   }
 
-  const activeBtn = Array.from(document.querySelectorAll(".util-tab-btn")).find(b => 
-    b.getAttribute("onclick")?.includes(sectionKey)
-  );
-  if (activeBtn) activeBtn.classList.add("active");
+  // Pastikan kondisi awal kembali menampilkan daftar alat
+  window.tutupModulUtility();
+
+  // Memuat 5 Ikon PNG Baru di latar belakang secara halus
+  window.loadCoreToolIconsSilent();
+
+  await window.loadDynamicUtilityLinks();
   if (window.lucide) lucide.createIcons();
+};
+
+/* FUNGSI PRELOAD IKON RESMI DENGAN FALLBACK AMAN */
+window.loadCoreToolIconsSilent = function() {
+  Object.keys(window.CORE_TOOL_ICONS).forEach((key) => {
+    const iconUrl = window.CORE_TOOL_ICONS[key];
+    const wrapper = document.getElementById(`wrap-icon-${key}`);
+    if (!wrapper) return;
+
+    const img = new Image();
+    img.src = iconUrl;
+    img.onload = () => {
+      // Jika berhasil dimuat di latar belakang, gantikan ikon SVG Lucide
+      wrapper.innerHTML = `<img src="${iconUrl}" alt="Ikon ${key}" class="tool-squircle-img" />`;
+      wrapper.style.backgroundColor = "transparent";
+      wrapper.style.border = "none";
+    };
+    img.onerror = () => {
+      // Jika gagal/offline, biarkan fallback ikon Lucide tetap aktif
+      console.warn(`Ikon ${key} gagal dimuat dari Supabase, mempertahankan ikon bawaan.`);
+    };
+  });
 };
 
 /* ==============================================================================
-   2. LOADER DINAMIS MODUL KALENDER
+   2. MEMBUKA MODUL SECARA EKSKLUSIF (SEMBUNYIKAN SEMUA ALAT LAINNYA)
    ============================================================================== */
-window.toggleAgendaViewer = async function() {
-  // Tutup materi viewer jika sedang terbuka agar fokus
-  window.tutupMateriViewer();
+window.bukaModulUtility = async function(modulKey) {
+  const headerCard = document.getElementById("utilitas-header-panel");
+  const mainGrid = document.getElementById("utilitas-main-grid");
+  const viewer = document.getElementById("utilitas-inapp-viewer");
+  const titleEl = document.getElementById("inapp-viewer-title");
+  const contentEl = document.getElementById("inapp-viewer-content");
 
-  const viewer = document.getElementById("agenda-viewer-wrapper");
-  if (!viewer) return;
+  if (!viewer || !contentEl) return;
 
-  if (viewer.style.display === "none" || viewer.innerHTML.trim() === "") {
-    if (!window.isKalenderLoaded) {
-      viewer.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; color:#64748b;">Memuat modul kalender...</div>`;
-      try {
-        const res = await fetch("modules/kalender/kalender.html");
-        if (!res.ok) throw new Error("Gagal mengambil template kalender.");
-        viewer.innerHTML = await res.text();
+  // Evaluasi Hak Akses Modul
+  const target = window.CORE_UTILITY_MODULES[modulKey];
+  if (!target) return;
 
-        await window.loadScriptOnce("modules/kalender/kalender.js");
-        window.isKalenderLoaded = true;
-      } catch (err) {
-        viewer.innerHTML = `<div style="color:red; font-size:12px; padding:15px; text-align:center;">Gagal memuat modul kalender: ${err.message}</div>`;
-        viewer.style.display = "block";
-        return;
-      }
-    }
+  const userRole = (window.activeUserProfile?.jabatan || "guest").toLowerCase();
+  const ket = (window.activeUserProfile?.keterangan_jabatan || "").toLowerCase();
+  const roleLevel = { "guest": 0, "non-aktif": 0, "alumni": 1, "anggota": 2, "pengurus": 3, "admin": 4 };
 
-    viewer.style.display = "block";
-    if (typeof window.initKalenderModule === "function") {
-      await window.initKalenderModule();
-    }
-    viewer.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else {
-    viewer.style.display = "none";
+  let currentLevel = roleLevel[userRole] || 0;
+  if (ket.includes("alumni")) currentLevel = Math.max(currentLevel, 1);
+  if (ket.includes("pembina")) currentLevel = 4;
+
+  const requiredLevel = roleLevel[target.akses] || 0;
+  if (currentLevel < requiredLevel) {
+    alert(`Akses Ditolak: Modul ini memerlukan hak akses minimal '${target.akses.toUpperCase()}'.`);
+    return;
   }
 
-  if (window.lucide) lucide.createIcons();
-};
+  window.ACTIVE_UTILITY_KEY = modulKey;
+  window.ACTIVE_UTILITY_URL = target.url;
 
-window.tutupAgendaViewer = function() {
-  const viewer = document.getElementById("agenda-viewer-wrapper");
-  if (viewer) viewer.style.display = "none";
+  // 1. Sembunyikan Header dan Kisi Menu
+  if (headerCard) headerCard.style.display = "none";
+  if (mainGrid) mainGrid.style.display = "none";
+
+  // 2. Munculkan Penampil Modul
+  if (titleEl) titleEl.textContent = target.title;
+  viewer.style.display = "flex";
+
+  // Indikator Memuat
+  contentEl.innerHTML = `
+    <div class="inapp-loading">
+      <i data-lucide="loader-2" class="spin-anim"></i>
+      <span>Memuat ${target.title}...</span>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+
+  // Mode 1: Modul Inline (Kalender & Pustaka Materi)
+  if (target.type === "inline") {
+    try {
+      const res = await fetch(target.url);
+      if (!res.ok) throw new Error("Gagal mengambil template modul.");
+      contentEl.innerHTML = await res.text();
+
+      if (target.script) {
+        await window.loadUtilityScriptOnce(target.script);
+      }
+      if (target.initFn && typeof window[target.initFn] === "function") {
+        await window[target.initFn]();
+      }
+      if (window.lucide) lucide.createIcons();
+    } catch (err) {
+      contentEl.innerHTML = `<div style="color:#b91c1c; font-size:12.5px; padding:30px; text-align:center;">Gagal memuat modul: ${err.message}</div>`;
+    }
+  } 
+  // Mode 2: Modul Mandiri (Inventaris, KTA, Pelaporan)
+  else {
+    contentEl.innerHTML = `
+      <iframe src="${target.url}" class="inapp-iframe" title="${target.title}"></iframe>
+    `;
+  }
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 /* ==============================================================================
-   3. LOADER DINAMIS MODUL MATERI PMR
+   3. MENUTUP MODUL & MENGEMBALIKAN TAMPILAN SEMUA ALAT
    ============================================================================== */
-window.toggleMateriViewer = async function() {
-  // Tutup agenda viewer jika sedang terbuka
-  window.tutupAgendaViewer();
+window.tutupModulUtility = function() {
+  const headerCard = document.getElementById("utilitas-header-panel");
+  const mainGrid = document.getElementById("utilitas-main-grid");
+  const viewer = document.getElementById("utilitas-inapp-viewer");
+  const contentEl = document.getElementById("inapp-viewer-content");
 
-  const viewer = document.getElementById("materi-viewer-wrapper");
-  if (!viewer) return;
+  if (viewer) viewer.style.display = "none";
+  if (contentEl) contentEl.innerHTML = "";
 
-  if (viewer.style.display === "none" || viewer.innerHTML.trim() === "") {
-    if (!window.isMateriLoaded) {
-      viewer.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; color:#64748b;">Memuat pustaka materi...</div>`;
-      try {
-        const res = await fetch("modules/materi/materi.html");
-        if (!res.ok) throw new Error("Gagal mengambil template materi.");
-        viewer.innerHTML = await res.text();
+  if (headerCard) headerCard.style.display = "flex";
+  if (mainGrid) mainGrid.style.display = "grid";
 
-        await window.loadScriptOnce("modules/materi/materi.js");
-        window.isMateriLoaded = true;
-      } catch (err) {
-        viewer.innerHTML = `<div style="color:red; font-size:12px; padding:15px; text-align:center;">Gagal memuat modul materi: ${err.message}</div>`;
-        viewer.style.display = "block";
-        return;
-      }
-    }
+  window.ACTIVE_UTILITY_KEY = null;
+  window.ACTIVE_UTILITY_URL = null;
 
-    viewer.style.display = "block";
-    if (typeof window.initMateriModule === "function") {
-      await window.initMateriModule();
-    }
-    viewer.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else {
-    viewer.style.display = "none";
-  }
-
+  window.scrollTo({ top: 0, behavior: "smooth" });
   if (window.lucide) lucide.createIcons();
 };
 
-window.tutupMateriViewer = function() {
-  const viewer = document.getElementById("materi-viewer-wrapper");
-  if (viewer) viewer.style.display = "none";
+window.bukaModulTabTerpisah = function() {
+  if (window.ACTIVE_UTILITY_URL) {
+    window.open(window.ACTIVE_UTILITY_URL, "_blank", "noopener,noreferrer");
+  }
 };
 
-window.loadScriptOnce = function(scriptSrc) {
+window.loadUtilityScriptOnce = function(scriptSrc) {
   return new Promise((resolve) => {
     if (document.querySelector(`script[src="${scriptSrc}"]`)) {
       resolve();
@@ -158,7 +221,7 @@ window.loadScriptOnce = function(scriptSrc) {
     script.src = scriptSrc;
     script.onload = () => resolve();
     script.onerror = () => {
-      console.warn("Gagal memuat skrip:", scriptSrc);
+      console.warn("Gagal memuat skrip modul:", scriptSrc);
       resolve();
     };
     document.body.appendChild(script);
@@ -166,112 +229,83 @@ window.loadScriptOnce = function(scriptSrc) {
 };
 
 /* ==============================================================================
-   4. LOGIKA KISI APLIKASI TAB BARU
+   4. TAUTAN EKSTERNAL DINAMIS DARI DATABASE SUPABASE
    ============================================================================== */
-window.renderAplikasiTabBaruGrid = async function() {
-  const grid = document.getElementById("utilitas-app-grid");
-  const btnTambah = document.getElementById("btn-tambah-link-app");
-  if (!grid) return;
+window.loadDynamicUtilityLinks = async function() {
+  const grid = document.getElementById("utilitas-main-grid");
+  if (!grid || !window.db) return;
 
   const userRole = (window.activeUserProfile?.jabatan || "").toLowerCase();
   const ket = (window.activeUserProfile?.keterangan_jabatan || "").toLowerCase();
   const isAdmin = userRole === "admin" || ket.includes("pembina");
 
-  if (isAdmin && btnTambah) btnTambah.style.display = "inline-flex";
-
   try {
     const { data: extApps, error } = await window.db.from("utilitas_eksternal").select("*");
     if (error) throw error;
 
-    const dynamicApps = (extApps || []).map(app => ({
-      id: app.id,
-      nama: app.nama,
-      kategori: "eksternal",
-      ikon_url: app.ikon_url,
-      warnaAksen: app.warna_aksen || "#059669",
-      warnaBg: app.warna_bg || "#ecfdf5",
-      targetUrl: app.target_url,
-      aksesMinimal: app.akses_minimal
-    }));
+    // Bersihkan elemen dinamis lama agar tidak bertumpuk
+    document.querySelectorAll(".util-dynamic-item").forEach(el => el.remove());
 
-    window.UTILITAS_REGISTRY = [...window.UTILITAS_TAB_BARU, ...dynamicApps];
+    (extApps || []).forEach(app => {
+      const deleteBtn = isAdmin
+        ? `<div class="btn-del-link" onclick="event.stopPropagation(); window.hapusAplikasiLink('${app.id}')" title="Hapus Tautan"><i data-lucide="x" style="width:12px; height:12px;"></i></div>`
+        : "";
 
-    grid.innerHTML = window.UTILITAS_REGISTRY.map(app => {
-      const isInternal = app.kategori === 'tab-baru';
-      const badgeClass = isInternal ? 'badge-internal' : 'badge-external';
-      const badgeText = isInternal ? 'MODUL' : 'LINK';
-      
-      const renderIkon = app.ikon_url 
-        ? `<img src="${app.ikon_url}" style="width: 100%; height: 100%; object-fit: cover;" />`
-        : `<i data-lucide="${app.ikon}"></i>`;
-
-      const deleteBtn = (!isInternal && isAdmin) 
-        ? `<div class="btn-delete-app" onclick="event.stopPropagation(); window.hapusAplikasiLink('${app.id}')"><i data-lucide="x" style="width:14px; height:14px;"></i></div>`
-        : '';
-      
-      return `
-        <div class="app-card" onclick="window.bukaAplikasiUtilitas('${app.id}')">
+      const itemHtml = `
+        <div class="util-app-card util-dynamic-item" onclick="window.open('${app.target_url}', '_blank')">
           ${deleteBtn}
-          <div class="app-icon-wrapper" style="background-color: ${app.warnaBg}; color: ${app.warnaAksen};">
-            ${renderIkon}
+          <div class="util-app-icon-wrap" style="background-color: ${app.warna_bg || '#ecfdf5'}; color: ${app.warna_aksen || '#059669'};">
+            <img src="${app.ikon_url}" alt="${app.nama}" class="tool-squircle-img" />
           </div>
-          <div class="app-title">${app.nama}</div>
-          <div class="app-badge ${badgeClass}">${badgeText}</div>
+          <div class="util-app-title">${app.nama}</div>
+          <div class="util-app-badge badge-link">LINK</div>
         </div>
       `;
-    }).join('');
+      grid.insertAdjacentHTML("beforeend", itemHtml);
+    });
 
     if (window.lucide) lucide.createIcons();
   } catch (err) {
-    grid.innerHTML = `<div style="color:red; font-size:12px;">Gagal memuat aplikasi: ${err.message}</div>`;
+    console.warn("Gagal memuat tautan dinamis:", err);
   }
-};
-
-window.bukaAplikasiUtilitas = function(appId) {
-  const app = window.UTILITAS_REGISTRY.find(item => item.id === appId);
-  if (!app) return;
-
-  const userRole = (window.activeUserProfile?.jabatan || "guest").toLowerCase();
-  const roleLevel = { "guest": 0, "non-aktif": 0, "alumni": 1, "anggota": 2, "pengurus": 3, "admin": 4 };
-  
-  if (roleLevel[userRole] < roleLevel[app.aksesMinimal]) {
-    return alert(`Akses Ditolak: Aplikasi ini memerlukan tingkat akses minimal ${app.aksesMinimal.toUpperCase()}.`);
-  }
-
-  window.open(app.targetUrl, "_blank", "noopener,noreferrer");
 };
 
 window.openTambahLinkModal = function() {
-  document.getElementById("form-tambah-link").reset();
-  document.getElementById("modal-tambah-link").style.display = "flex";
+  document.getElementById("form-tambah-link")?.reset();
+  const modal = document.getElementById("modal-tambah-link");
+  if (modal) modal.style.display = "flex";
 };
 
 window.closeTambahLinkModal = function() {
-  document.getElementById("modal-tambah-link").style.display = "none";
+  const modal = document.getElementById("modal-tambah-link");
+  if (modal) modal.style.display = "none";
 };
 
 window.handleTambahLinkSubmit = async function(event) {
   event.preventDefault();
   const btn = document.getElementById("btn-save-link");
   const fileInput = document.getElementById("link-ikon-file");
-  
+
   btn.disabled = true;
   btn.textContent = "Menyimpan...";
 
   try {
     let fotoUrl = null;
     if (fileInput.files && fileInput.files[0]) {
-      const compressedBlob = await window.compressProfileImage(fileInput.files[0]);
+      const file = fileInput.files[0];
+      const compressedBlob = typeof window.compressProfileImage === "function"
+        ? await window.compressProfileImage(file)
+        : file;
       const fileName = `app_icon_${Date.now()}.jpg`;
-      
+
       const { error: uploadErr } = await window.db.storage.from("utilitas_ikon").upload(fileName, compressedBlob, { contentType: "image/jpeg" });
       if (uploadErr) throw uploadErr;
-      
+
       const { data: publicUrlData } = window.db.storage.from("utilitas_ikon").getPublicUrl(fileName);
       fotoUrl = publicUrlData.publicUrl;
     }
 
-    if (!fotoUrl) throw new Error("Ikon wajib diunggah.");
+    if (!fotoUrl) throw new Error("Ikon alat wajib diunggah.");
 
     const payload = {
       nama: document.getElementById("link-nama").value.trim(),
@@ -283,11 +317,11 @@ window.handleTambahLinkSubmit = async function(event) {
     const { error } = await window.db.from("utilitas_eksternal").insert(payload);
     if (error) throw error;
 
-    alert("Aplikasi tautan berhasil ditambahkan!");
+    alert("Tautan alat baru berhasil ditambahkan!");
     window.closeTambahLinkModal();
-    await window.renderAplikasiTabBaruGrid();
+    await window.loadDynamicUtilityLinks();
   } catch (err) {
-    alert("Gagal menyimpan aplikasi: " + err.message);
+    alert("Gagal menyimpan tautan: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "Simpan";
@@ -295,14 +329,12 @@ window.handleTambahLinkSubmit = async function(event) {
 };
 
 window.hapusAplikasiLink = async function(appId) {
-  if (!confirm("Hapus tautan aplikasi ini?")) return;
+  if (!confirm("Apakah Anda yakin ingin menghapus tautan alat ini?")) return;
   try {
     const { error } = await window.db.from("utilitas_eksternal").delete().eq("id", appId);
     if (error) throw error;
-    await window.renderAplikasiTabBaruGrid();
+    await window.loadDynamicUtilityLinks();
   } catch (err) {
     alert("Gagal menghapus: " + err.message);
   }
 };
-
-setTimeout(window.renderUtilitasGrid, 100);

@@ -12,41 +12,17 @@
   <link rel="stylesheet" href="pelaporan.css" />
 </head>
 <body>
-
-  <header class="module-header no-print">
-    <div class="header-left">
-      <button class="btn-back-portal" onclick="window.close()" title="Tutup Modul">
-        <i data-lucide="arrow-left"></i>
-        <span class="hide-mobile">Tutup</span>
-      </button>
-      <div class="brand-divider"></div>
-      <div class="brand-info">
-        <h1>SISTEM PELAPORAN</h1>
-        <p>PMR SPADAN BALIKPAPAN</p>
-      </div>
-    </div>
-
-    <div class="header-right">
-      <div class="user-chip">
-        <div class="user-text">
-          <span id="lap-user-name" class="name">Memuat...</span>
-          <span id="lap-user-role" class="role">Petugas</span>
-        </div>
-        <div class="user-avatar" id="lap-user-avatar">?</div>
-      </div>
-    </div>
-  </header>
-
+  <!-- WORKSPACE PELAPORAN (HEADER LAMA TELAH DIHAPUS) -->
   <div class="workspace-container no-print">
-    
+    <!-- KARTU PENGATURAN PERIODE & PENARIKAN DATA -->
     <div class="filter-card">
       <div class="filter-header">
         <i data-lucide="calendar"></i>
-        <span>1. Pengaturan Data Laporan</span>
+        <span>Pengaturan Periode Data Laporan</span>
       </div>
       <div class="filter-body">
         <div class="form-group">
-          <label>Bulan</label>
+          <label>Bulan Kegiatan</label>
           <select id="lap-bulan">
             <option value="01">Januari</option>
             <option value="02">Februari</option>
@@ -82,32 +58,33 @@
         <div class="form-group btn-tarik-wrapper">
           <button class="btn-primary w-100-mobile" onclick="window.muatDataPelaporan()">
             <i data-lucide="download-cloud"></i>
-            <span>Tarik Data</span>
+            <span>Tarik Data Laporan</span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- KISI TOMBOL DOKUMEN CETAK -->
     <div class="menu-grid">
       <div class="action-btn" onclick="window.bukaPanel('panel-cover')">
         <div class="icon-box" style="background: #475569;"><i data-lucide="book-open"></i></div>
-        <span>Cover</span>
+        <span>Sampul Cover</span>
       </div>
       <div class="action-btn" onclick="window.bukaPanel('panel-laporan')">
         <div class="icon-box" style="background: #b91c1c;"><i data-lucide="file-text"></i></div>
-        <span>Laporan</span>
+        <span>Laporan Harian</span>
       </div>
       <div class="action-btn" onclick="window.bukaPanel('panel-absen')">
         <div class="icon-box" style="background: #2563eb;"><i data-lucide="users"></i></div>
-        <span>Hadir</span>
+        <span>Presensi Hadir</span>
       </div>
       <div class="action-btn" onclick="window.bukaPanel('panel-jurnal')">
         <div class="icon-box" style="background: #16a34a;"><i data-lucide="check-square"></i></div>
-        <span>Jurnal</span>
+        <span>Jurnal Kegiatan</span>
       </div>
       <div class="action-btn" onclick="window.bukaPanel('panel-dokumentasi')">
         <div class="icon-box" style="background: #d97706;"><i data-lucide="image"></i></div>
-        <span>Foto</span>
+        <span>Dokumentasi</span>
       </div>
     </div>
 
@@ -141,7 +118,7 @@
     <!-- PANEL 2: LAPORAN -->
     <div id="panel-laporan" class="laporan-panel" style="display: none;">
       <div class="panel-header">
-        <span>Laporan Harian (Kertas F4)</span>
+        <span>Laporan Harian Kegiatan (Kertas F4)</span>
         <button class="btn-print" onclick="window.cetakDiv('print-laporan', 'portrait')">
           <i data-lucide="printer"></i> Simpan Laporan PDF
         </button>
@@ -182,7 +159,6 @@
             <div class="form-group"><label>Mengetahui Kiri</label><select id="ttd_abs_pel_kiri"></select></div>
             <div class="form-group"><label>Mengetahui Kanan</label><select id="ttd_abs_pel_kanan"></select></div>
           </div>
-
           <h4 class="form-section-title mt-15">2. Tanda Tangan Absen Anggota (Siswa)</h4>
           <div class="form-row">
             <div class="form-group"><label>Mengetahui Kiri</label><select id="ttd_abs_sis_kiri"></select></div>
@@ -197,7 +173,6 @@
               <input type="number" id="absen_min_kolom" value="10" min="1" />
             </div>
           </div>
-
           <button class="btn-primary mt-10 w-100-mobile" onclick="window.renderAbsen()">
             <i data-lucide="check"></i> Terapkan Pengaturan
           </button>
@@ -209,7 +184,7 @@
     <!-- PANEL 4: JURNAL -->
     <div id="panel-jurnal" class="laporan-panel" style="display: none;">
       <div class="panel-header">
-        <span>Jurnal Kegiatan (Landscape F4)</span>
+        <span>Jurnal Kegiatan Ekstrakurikuler (Landscape F4)</span>
         <button class="btn-print" onclick="window.cetakDiv('print-jurnal', 'landscape')">
           <i data-lucide="printer"></i> Simpan Jurnal PDF
         </button>
@@ -230,7 +205,7 @@
     <!-- PANEL 5: DOKUMENTASI -->
     <div id="panel-dokumentasi" class="laporan-panel" style="display: none;">
       <div class="panel-header">
-        <span>Dokumentasi Pelaksanaan Kegiatan (F4)</span>
+        <span>Dokumentasi Foto Pelaksanaan Kegiatan (F4)</span>
         <button class="btn-print" onclick="window.cetakDiv('print-dokumentasi', 'portrait')">
           <i data-lucide="printer"></i> Simpan Dokumentasi PDF
         </button>
@@ -239,7 +214,6 @@
         <div id="print-dokumentasi" class="paper-f4"></div>
       </div>
     </div>
-
   </div>
 
   <div id="print-container"></div>

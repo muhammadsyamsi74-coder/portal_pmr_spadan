@@ -1,7 +1,10 @@
 /**
  * ==============================================================================
  * ENGINE MODUL PELAPORAN ADMINISTRASI - PMR SPADAN
- * Diperbarui dengan Validasi Hak Akses (Admin, Pengurus, Anggota Aktif)
+ * Diperbarui:
+ * - Struktur Kolom Tabel Presensi: [No, Nama Lengkap, Jabatan / Kelas, Tanggal...]
+ * - Filter Presensi Siswa: Khusus Anggota Aktif (Alumni, Non-Aktif, Pembina, & Pelatih dieksklusikan)
+ * - Lembar Presensi Pelatih & Pembina dipisah pada lembar tersendiri
  * ==============================================================================
  */
 
@@ -9,50 +12,57 @@ var rawPresensi = [];
 var rawUsers = [];
 var kegiatanUnik = [];
 
+function getPelaporanDbClient() {
+  if (window.db) return window.db;
+  if (window.parent && window.parent.db) return window.parent.db;
+  return null;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
-  // Validasi Hak Akses Sebelum Memuat Modul
   const isAuthorized = await checkPelaporanAccess();
   if (!isAuthorized) return;
 
   const now = new Date();
   const currMonth = String(now.getMonth() + 1).padStart(2, '0');
   const currYear = now.getFullYear();
-  
+
   const elBulan = document.getElementById("lap-bulan");
   const elTahun = document.getElementById("lap-tahun");
-  if(elBulan) elBulan.value = currMonth;
-  if(elTahun) elTahun.value = currYear;
 
-  await initHeaderUser();
+  if (elBulan) elBulan.value = currMonth;
+  if (elTahun) elTahun.value = currYear;
+
   if (window.lucide) lucide.createIcons();
 });
 
-// Fungsi Validasi Hak Akses Pelaporan
 async function checkPelaporanAccess() {
   try {
-    if (typeof getCurrentUser !== "function" || typeof getCurrentUserProfile !== "function") {
-      // Jika fungsi global tidak tersedia, cek langsung via Supabase jika ada
-      return true; 
+    let profile = null;
+    if (window.parent && window.parent.activeUserProfile) {
+      profile = window.parent.activeUserProfile;
+    } else if (typeof getCurrentUserProfile === "function") {
+      profile = await getCurrentUserProfile();
     }
 
-    const user = await getCurrentUser();
-    const workspaceContainer = document.querySelector(".workspace-container");
-    
-    if (!user) {
-      showAccessDenied("Akses Ditolak: Anda masuk sebagai Guest (Tamu). Silakan login terlebih dahulu menggunakan akun resmi PMR.");
-      return false;
-    }
-
-    const profile = await getCurrentUserProfile();
     if (!profile) {
-      showAccessDenied("Akses Ditolak: Profil pengguna tidak ditemukan di dalam sistem.");
+      const dbClient = getPelaporanDbClient();
+      if (dbClient?.auth) {
+        const { data: { user } } = await dbClient.auth.getUser();
+        if (user) {
+          const { data } = await dbClient.from("users_profile").select("*").eq("id", user.id).single();
+          profile = data;
+        }
+      }
+    }
+
+    if (!profile) {
+      showAccessDenied("Akses Ditolak: Anda masuk sebagai Guest (Tamu). Silakan login terlebih dahulu menggunakan akun resmi PMR.");
       return false;
     }
 
     const role = (profile.jabatan || "").toLowerCase();
     const ket = (profile.keterangan_jabatan || "").toLowerCase();
 
-    // Aturan Penolakan: Alumni, Non-Aktif
     const isAlumni = ket.includes("alumni");
     const isNonAktif = ket.includes("non-aktif") || role === "non-aktif";
 
@@ -64,7 +74,7 @@ async function checkPelaporanAccess() {
     return true;
   } catch (e) {
     console.warn("Gagal memvalidasi hak akses:", e);
-    return true; // Loloskan jika terjadi kendala jaringan mendadak agar tidak mengunci total
+    return true;
   }
 }
 
@@ -72,47 +82,21 @@ function showAccessDenied(message) {
   const workspace = document.querySelector(".workspace-container");
   if (workspace) {
     workspace.innerHTML = `
-      <div style="text-align: center; padding: 60px 20px; background: #ffffff; border-radius: 14px; border-top: 5px solid #b91c1c; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 40px;">
-        <div style="display: flex; justify-content: center; margin-bottom: 16px;">
-          <i data-lucide="shield-alert" style="width: 56px; height: 56px; color: #b91c1c;"></i>
+      <div style="text-align: center; padding: 50px 20px; background: #ffffff; border-radius: 18px; border-top: 5px solid #b91c1c; box-shadow: 0 4px 18px rgba(0,0,0,0.04); margin-top: 30px;">
+        <div style="display: flex; justify-content: center; margin-bottom: 14px;">
+          <i data-lucide="shield-alert" style="width: 50px; height: 50px; color: #b91c1c;"></i>
         </div>
-        <h2 style="font-size: 20px; font-weight: 800; color: #b91c1c; margin-bottom: 8px;">Akses Terbatas</h2>
-        <p style="font-size: 13.5px; color: #475569; max-width: 450px; margin: 0 auto 20px; line-height: 1.5;">${message}</p>
-        <button class="btn-primary" onclick="window.close()" style="margin: 0 auto;">
-          <i data-lucide="arrow-left"></i> Kembali ke Portal Utama
-        </button>
+        <h2 style="font-size: 18px; font-weight: 800; color: #b91c1c; margin-bottom: 8px;">Akses Terbatas</h2>
+        <p style="font-size: 13px; color: #64748b; max-width: 440px; margin: 0 auto; line-height: 1.5;">${message}</p>
       </div>
     `;
     if (window.lucide) lucide.createIcons();
   }
 }
 
-async function initHeaderUser() {
-  const nameEl = document.getElementById("lap-user-name");
-  const roleEl = document.getElementById("lap-user-role");
-  const avatarEl = document.getElementById("lap-user-avatar");
-
-  try {
-    const profile = await getCurrentUserProfile();
-    if (profile) {
-      const nama = profile.nama_panggilan || profile.nama_lengkap || "Petugas";
-      const role = (profile.keterangan_jabatan || profile.jabatan || "Anggota").toUpperCase();
-      if (nameEl) nameEl.textContent = nama;
-      if (roleEl) roleEl.textContent = role;
-      if (avatarEl) {
-        avatarEl.innerHTML = profile.foto_profil_url
-          ? `<img src="${profile.foto_profil_url}" style="width:100%; height:100%; object-fit:cover;" />`
-          : nama.charAt(0).toUpperCase();
-      }
-    }
-  } catch (e) {
-    console.warn("Gagal memuat sesi profil:", e);
-  }
-}
-
 window.bukaPanel = function(panelId) {
   if (rawPresensi.length === 0) {
-    return alert("Silakan klik 'Tarik Data' terlebih dahulu.");
+    return alert("Silakan klik 'Tarik Data Laporan' terlebih dahulu.");
   }
   document.querySelectorAll(".laporan-panel").forEach(p => p.style.display = "none");
   const target = document.getElementById(panelId);
@@ -124,21 +108,24 @@ window.bukaPanel = function(panelId) {
 };
 
 window.muatDataPelaporan = async function() {
+  const dbClient = getPelaporanDbClient();
+  if (!dbClient) return alert("Koneksi basis data tidak tersedia.");
+
   const bulanEl = document.getElementById("lap-bulan");
   const bulan = bulanEl.value;
   const namaBulan = bulanEl.options[bulanEl.selectedIndex].text;
   const tahun = document.getElementById("lap-tahun").value;
   const jenisKegiatan = document.getElementById("lap-jenis").value;
-  
+
   const startDate = `${tahun}-${bulan}-01`;
   const endDate = new Date(tahun, parseInt(bulan, 10), 0).toISOString().split('T')[0];
 
   try {
-    const { data: users, error: errUsers } = await window.db
+    const { data: users, error: errUsers } = await dbClient
       .from("users_profile")
-      .select("id, nama_lengkap, jabatan, keterangan_jabatan");
+      .select("id, nama_lengkap, kelas, jabatan, keterangan_jabatan");
 
-    let presensiQuery = window.db.from("presensi")
+    let presensiQuery = dbClient.from("presensi")
       .select("*")
       .gte("tanggal_kegiatan", startDate)
       .lte("tanggal_kegiatan", endDate)
@@ -150,7 +137,7 @@ window.muatDataPelaporan = async function() {
 
     const { data: presensi, error: errPresensi } = await presensiQuery;
 
-    if (errUsers || errPresensi) throw new Error("Gagal menarik data dari database.");
+    if (errUsers || errPresensi) throw new Error("Gagal menarik data dari basis data.");
 
     rawUsers = users || [];
     rawPresensi = presensi || [];
@@ -160,6 +147,7 @@ window.muatDataPelaporan = async function() {
     const thnInt = parseInt(tahun, 10);
     const blnInt = parseInt(bulan, 10);
     const ta = (blnInt >= 7) ? `${thnInt}/${thnInt + 1}` : `${thnInt - 1}/${thnInt}`;
+
     document.getElementById("cov_b3").value = `BULAN: ${namaBulan.toUpperCase()} ${tahun}`;
     document.getElementById("cov_ta").value = `TAHUN AJARAN ${ta}`;
 
@@ -171,9 +159,8 @@ window.muatDataPelaporan = async function() {
     window.renderJurnal();
     window.renderDokumentasi();
 
-    alert(`Data berhasil ditarik: ${kegiatanUnik.length} agenda ditemukan.`);
+    alert(`Data berhasil ditarik: ${kegiatanUnik.length} agenda kegiatan ditemukan.`);
     window.bukaPanel('panel-cover');
-
   } catch (error) {
     alert(error.message);
   }
@@ -181,9 +168,11 @@ window.muatDataPelaporan = async function() {
 
 function ekstrakKegiatanUnik() {
   const mapKegiatan = new Map();
+
   rawPresensi.forEach(p => {
     const key = `${p.tanggal_kegiatan}_${p.nama_kegiatan}`;
     let parsedFotos = [];
+
     if (p.foto_dokumentasi_url) {
       try {
         const decoded = JSON.parse(p.foto_dokumentasi_url);
@@ -215,6 +204,7 @@ function ekstrakKegiatanUnik() {
       });
     }
   });
+
   kegiatanUnik = Array.from(mapKegiatan.values());
 }
 
@@ -338,15 +328,39 @@ window.renderLaporan = function() {
   document.getElementById("print-laporan").innerHTML = html || `<p style="text-align:center; padding:20px;">Tidak ada kegiatan.</p>`;
 };
 
+/* --------------------------------------------------------------------------
+   PRESENSI KEGIATAN: KOLOM [NO, NAMA LENGKAP, JABATAN / KELAS, TANGGAL...]
+   - SISWA: EKSKLUSIF ANGGOTA AKTIF (ALUMNI, NON-AKTIF, PEMBINA, & PELATIH DIEKSKLUSIKAN)
+   - PELATIH & PEMBINA: DILEMBAR TERPISAH
+-------------------------------------------------------------------------- */
 window.renderAbsen = function(modeCustom = 'normal') {
+  // 1. Identifikasi Unsur Pelatih & Pembina
   const pelatihRoles = ['kepala sekolah', 'pembina 1', 'pembina 2', 'pelatih'];
-  const pelatihUsers = rawUsers.filter(u => pelatihRoles.some(r => (u.keterangan_jabatan || '').toLowerCase().includes(r)));
-  const siswaUsers = rawUsers.filter(u => !pelatihRoles.some(r => (u.keterangan_jabatan || '').toLowerCase().includes(r)));
+  const pelatihUsers = rawUsers.filter(u => {
+    const ket = (u.keterangan_jabatan || '').toLowerCase();
+    const jab = (u.jabatan || '').toLowerCase();
+    return pelatihRoles.some(r => ket.includes(r) || jab.includes(r));
+  });
+
+  // 2. Filter Eksklusif Anggota Aktif PMR (Keluarkan Alumni, Non-Aktif, Pembina, & Pelatih)
+  const siswaUsers = rawUsers.filter(u => {
+    const ket = (u.keterangan_jabatan || '').toLowerCase();
+    const jab = (u.jabatan || '').toLowerCase();
+
+    const isDewasa = pelatihRoles.some(r => ket.includes(r) || jab.includes(r));
+    const isAlumni = ket.includes('alumni') || jab.includes('alumni');
+    const isNonAktif = ket.includes('non-aktif') || jab === 'non-aktif';
+
+    return !isDewasa && !isAlumni && !isNonAktif;
+  });
+
+  // Urutkan siswa berdasarkan nama secara alfabetis
+  siswaUsers.sort((a, b) => (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '', 'id', { sensitivity: 'base' }));
 
   const minKolom = parseInt(document.getElementById("absen_min_kolom").value, 10) || 8;
   const tanggalUnik = [...new Set(kegiatanUnik.map(k => k.tanggal))].sort();
   const tglAkhir = tanggalUnik.length > 0 ? tanggalUnik[tanggalUnik.length - 1] : ".....";
-  
+
   let tanggalTampil = [...tanggalUnik];
   while (tanggalTampil.length < minKolom) {
     tanggalTampil.push("");
@@ -357,6 +371,7 @@ window.renderAbsen = function(modeCustom = 'normal') {
     return `<th style="font-size:9.5px; width:4%; text-align:center;">${t.substring(8, 10)}/${t.substring(5, 7)}</th>`;
   }).join('');
 
+  // TABEL 1: LEMBAR DAFTAR HADIR PELATIH & PEMBINA
   const sigPelKiri = getSigData("ttd_abs_pel_kiri", "Pembina 1");
   const sigPelKanan = getSigData("ttd_abs_pel_kanan", "Kepala Sekolah");
 
@@ -373,22 +388,46 @@ window.renderAbsen = function(modeCustom = 'normal') {
         rowTgl += `<td style="text-align:center; font-weight:bold;">${status}</td>`;
       }
     });
-    rowPelatih += `<tr><td style="text-align:center;">${i + 1}</td><td>${user.nama_lengkap}</td>${rowTgl}</tr>`;
+
+    const jabatanDisplay = user.keterangan_jabatan || user.jabatan || "-";
+    rowPelatih += `
+      <tr>
+        <td style="text-align:center;">${i + 1}</td>
+        <td>${user.nama_lengkap}</td>
+        <td style="text-align:center; font-size:10pt;">${jabatanDisplay}</td>
+        ${rowTgl}
+      </tr>
+    `;
   });
 
   const htmlPelatih = `
     <div class="paper-landscape-f4">
       ${kopSurat}
       <div class="judul-laporan">DAFTAR HADIR PELATIH & PEMBINA PMR</div>
-      <table class="table-data"><tr style="background:#f1f5f9;"><th style="width:4%; text-align:center;">No</th><th style="width:28%;">Nama Pelatih / Pembina</th>${thTanggal}</tr>${rowPelatih || '<tr><td colspan="10" style="text-align:center;">Data kosong</td></tr>'}</table>
+      <table class="table-data">
+        <tr style="background:#f1f5f9;">
+          <th style="width:4%; text-align:center;">No</th>
+          <th style="width:24%;">Nama Lengkap</th>
+          <th style="width:14%; text-align:center;">Jabatan</th>
+          ${thTanggal}
+        </tr>
+        ${rowPelatih || '<tr><td colspan="12" style="text-align:center;">Data kosong</td></tr>'}
+      </table>
       <table class="table-ttd">
-        <tr><td style="width:50%;">Mengetahui,<br>${sigPelKiri.jabatan}</td><td style="width:50%;">Balikpapan, ${formatTglIndo(tglAkhir)}<br>${sigPelKanan.jabatan}</td></tr>
+        <tr>
+          <td style="width:50%;">Mengetahui,<br>${sigPelKiri.jabatan}</td>
+          <td style="width:50%;">Balikpapan, ${formatTglIndo(tglAkhir)}<br>${sigPelKanan.jabatan}</td>
+        </tr>
         <tr><td colspan="2" style="height:60px;"></td></tr>
-        <tr><td><b><u>${sigPelKiri.nama}</u></b></td><td><b><u>${sigPelKanan.nama}</u></b></td></tr>
+        <tr>
+          <td><b><u>${sigPelKiri.nama}</u></b></td>
+          <td><b><u>${sigPelKanan.nama}</u></b></td>
+        </tr>
       </table>
     </div>
   `;
 
+  // TABEL 2: LEMBAR DAFTAR HADIR ANGGOTA AKTIF SISWA (TERPISAH)
   const sigSisKiri = getSigData("ttd_abs_sis_kiri", "Pembina 1");
   const sigSisTengah = getSigData("ttd_abs_sis_tengah", "Pelatih");
   const sigSisKanan = getSigData("ttd_abs_sis_kanan", "Kepala Sekolah");
@@ -406,18 +445,46 @@ window.renderAbsen = function(modeCustom = 'normal') {
         rowTgl += `<td style="text-align:center; font-weight:bold;">${status}</td>`;
       }
     });
-    rowSiswa += `<tr><td style="text-align:center;">${i + 1}</td><td>${user.nama_lengkap}</td>${rowTgl}</tr>`;
+
+    const role = user.keterangan_jabatan || "Anggota";
+    const kelas = user.kelas ? ` / ${user.kelas}` : "";
+    const jabatanKelas = `${role}${kelas}`;
+
+    rowSiswa += `
+      <tr>
+        <td style="text-align:center;">${i + 1}</td>
+        <td>${user.nama_lengkap}</td>
+        <td style="text-align:center; font-size:10pt;">${jabatanKelas}</td>
+        ${rowTgl}
+      </tr>
+    `;
   });
 
   const htmlSiswa = `
     <div class="paper-landscape-f4">
       ${kopSurat}
-      <div class="judul-laporan">DAFTAR HADIR ANGGOTA PMR</div>
-      <table class="table-data"><tr style="background:#f1f5f9;"><th style="width:4%; text-align:center;">No</th><th style="width:28%;">Nama Anggota</th>${thTanggal}</tr>${rowSiswa || '<tr><td colspan="10" style="text-align:center;">Data kosong</td></tr>'}</table>
+      <div class="judul-laporan">DAFTAR HADIR ANGGOTA AKTIF PMR</div>
+      <table class="table-data">
+        <tr style="background:#f1f5f9;">
+          <th style="width:4%; text-align:center;">No</th>
+          <th style="width:24%;">Nama Lengkap</th>
+          <th style="width:14%; text-align:center;">Jabatan / Kelas</th>
+          ${thTanggal}
+        </tr>
+        ${rowSiswa || '<tr><td colspan="12" style="text-align:center;">Tidak ada anggota aktif tercatat</td></tr>'}
+      </table>
       <table class="table-ttd">
-        <tr><td style="width:33%;">Mengetahui,<br>${sigSisKiri.jabatan}</td><td style="width:33%;">Mengetahui,<br>${sigSisTengah.jabatan}</td><td style="width:33%;">Balikpapan, ${formatTglIndo(tglAkhir)}<br>${sigSisKanan.jabatan}</td></tr>
+        <tr>
+          <td style="width:33%;">Mengetahui,<br>${sigSisKiri.jabatan}</td>
+          <td style="width:33%;">Mengetahui,<br>${sigSisTengah.jabatan}</td>
+          <td style="width:33%;">Balikpapan, ${formatTglIndo(tglAkhir)}<br>${sigSisKanan.jabatan}</td>
+        </tr>
         <tr><td colspan="3" style="height:60px;"></td></tr>
-        <tr><td><b><u>${sigSisKiri.nama}</u></b></td><td><b><u>${sigSisTengah.nama}</u></b></td><td><b><u>${sigSisKanan.nama}</u></b></td></tr>
+        <tr>
+          <td><b><u>${sigSisKiri.nama}</u></b></td>
+          <td><b><u>${sigSisTengah.nama}</u></b></td>
+          <td><b><u>${sigSisKanan.nama}</u></b></td>
+        </tr>
       </table>
     </div>
   `;
@@ -499,7 +566,6 @@ window.renderDokumentasi = function() {
     });
     html += `</div></div>`;
   }
-
   document.getElementById("print-dokumentasi").innerHTML = html;
 };
 
@@ -509,12 +575,10 @@ window.cetakDiv = function(divId, orientation = 'portrait') {
   const pageStyle = orientation === 'landscape' 
     ? '@page { size: 330mm 215mm; margin: 15mm; }' 
     : '@page { size: 215mm 330mm; margin: 15mm; }';
-  
+
   document.body.classList.add('is-printing');
   document.getElementById("print-container").innerHTML = `<style>${pageStyle}</style>` + konten;
-  
   window.print();
-  
   setTimeout(() => {
     document.body.classList.remove('is-printing');
     document.getElementById("print-container").innerHTML = '';
