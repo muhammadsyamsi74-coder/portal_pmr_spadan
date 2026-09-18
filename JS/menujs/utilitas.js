@@ -24,13 +24,13 @@ window.CORE_TOOL_ICONS = {
 window.CORE_UTILITY_MODULES = {
   inventaris: {
     title: "Modul Inventaris & UKS",
-    url: "modules/inventaris/index.html",
+    url: "MODULES/inventaris/index.html",
     type: "iframe",
     akses: "guest"
   },
   kalender: {
     title: "Modul Kalender & Agenda Tahunan",
-    url: "modules/kalender/kalender.html",
+    url: "MODULES/kalender/kalender.html",
     script: "modules/kalender/kalender.js",
     initFn: "initKalenderModule",
     type: "inline",
@@ -38,13 +38,13 @@ window.CORE_UTILITY_MODULES = {
   },
   kta: {
     title: "Modul Cetak Kartu Tanda Anggota (KTA)",
-    url: "modules/kta/kta.html",
+    url: "MODULES/kta/kta.html",
     type: "iframe",
     akses: "anggota"
   },
   materi: {
     title: "Pustaka Materi & Dokumen Belajar",
-    url: "modules/materi/materi.html",
+    url: "MODULES/materi/materi.html",
     script: "modules/materi/materi.js",
     initFn: "initMateriModule",
     type: "inline",
@@ -52,7 +52,7 @@ window.CORE_UTILITY_MODULES = {
   },
   pelaporan: {
     title: "Modul Pelaporan Administrasi Resmi",
-    url: "modules/pelaporan/pelaporan.html",
+    url: "MODULES/pelaporan/pelaporan.html",
     type: "iframe",
     akses: "anggota"
   }
