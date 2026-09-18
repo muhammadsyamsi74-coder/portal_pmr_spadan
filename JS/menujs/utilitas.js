@@ -38,7 +38,7 @@ window.CORE_UTILITY_MODULES = {
   },
   kta: {
     title: "Modul Cetak Kartu Tanda Anggota (KTA)",
-    url: "modules/kta/index.html",
+    url: "modules/kta/kta.html",
     type: "iframe",
     akses: "anggota"
   },
@@ -52,7 +52,7 @@ window.CORE_UTILITY_MODULES = {
   },
   pelaporan: {
     title: "Modul Pelaporan Administrasi Resmi",
-    url: "modules/pelaporan/index.html",
+    url: "modules/pelaporan/pelaporan.html",
     type: "iframe",
     akses: "anggota"
   }
