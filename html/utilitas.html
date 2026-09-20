@@ -1,0 +1,470 @@
+<div class="utilitas-container">
+  <!-- HEADER HALAMAN UTILITY (OTOMATIS DISEMBUNYIKAN SAAT MODUL TERBUKA) -->
+  <div class="utilitas-header-card" id="utilitas-header-panel">
+    <div class="utilitas-header-left">
+      <div class="utilitas-icon-main">
+        <i data-lucide="briefcase-medical"></i>
+      </div>
+      <div>
+        <h2>Utility & Alat Operasional</h2>
+        <p>Pusat akses modul kerja mandiri, administrasi, logistik, dan kalender kegiatan PMR SPADAN.</p>
+      </div>
+    </div>
+    <!-- Tombol Tambah Tautan Eksternal Khusus Pembina/Admin -->
+    <button id="btn-tambah-link-app" class="btn-tambah-link" onclick="window.openTambahLinkModal()" style="display: none;">
+      <i data-lucide="plus"></i>
+      <span>Tambah Tautan</span>
+    </button>
+  </div>
+
+  <!-- KISI 5 ALAT OPERASIONAL UTAMA + TAUTAN DINAMIS -->
+  <div class="utilitas-grid" id="utilitas-main-grid">
+    <!-- 1. Inventaris Barang -->
+    <div class="util-app-card" onclick="window.bukaModulUtility('inventaris')">
+      <div class="util-app-icon-wrap" id="wrap-icon-inventaris" style="background-color: #fef2f2; color: #b91c1c;">
+        <i data-lucide="boxes" id="fallback-icon-inventaris"></i>
+      </div>
+      <div class="util-app-title">Inventaris Barang</div>
+    </div>
+
+    <!-- 2. Kalender & Agenda -->
+    <div class="util-app-card" onclick="window.bukaModulUtility('kalender')">
+      <div class="util-app-icon-wrap" id="wrap-icon-kalender" style="background-color: #ecfdf5; color: #059669;">
+        <i data-lucide="calendar-days" id="fallback-icon-kalender"></i>
+      </div>
+      <div class="util-app-title">Kalender & Agenda</div>
+    </div>
+
+    <!-- 3. Cetak KTA -->
+    <div class="util-app-card" onclick="window.bukaModulUtility('kta')">
+      <div class="util-app-icon-wrap" id="wrap-icon-kta" style="background-color: #f5f3ff; color: #7c3aed;">
+        <i data-lucide="id-card" id="fallback-icon-kta"></i>
+      </div>
+      <div class="util-app-title">Cetak KTA</div>
+    </div>
+
+    <!-- 4. Pustaka Materi -->
+    <div class="util-app-card" onclick="window.bukaModulUtility('materi')">
+      <div class="util-app-icon-wrap" id="wrap-icon-materi" style="background-color: #eff6ff; color: #2563eb;">
+        <i data-lucide="book-open" id="fallback-icon-materi"></i>
+      </div>
+      <div class="util-app-title">Pustaka Materi</div>
+    </div>
+
+    <!-- 5. Pelaporan Kegiatan -->
+    <div class="util-app-card" onclick="window.bukaModulUtility('pelaporan')">
+      <div class="util-app-icon-wrap" id="wrap-icon-pelaporan" style="background-color: #fffbeb; color: #d97706;">
+        <i data-lucide="file-text" id="fallback-icon-pelaporan"></i>
+      </div>
+      <div class="util-app-title">Laporan Kegiatan</div>
+    </div>
+  </div>
+
+  <!-- AREA EKSKLUSIF PENAMPIL MODUL AKTIF -->
+  <div id="utilitas-inapp-viewer" class="inapp-viewer-container" style="display: none;">
+    <div class="inapp-viewer-header">
+      <div class="inapp-title-group">
+        <button class="btn-back-grid" onclick="window.tutupModulUtility()" title="Kembali ke Daftar Menu">
+          <i data-lucide="arrow-left"></i>
+          <span>Kembali</span>
+        </button>
+        <div class="inapp-pulse-dot"></div>
+        <span id="inapp-viewer-title" class="inapp-title">Memuat Modul...</span>
+      </div>
+      <div class="inapp-controls">
+        <button class="btn-inapp-ctrl" onclick="window.bukaModulTabTerpisah()" title="Buka di Tab Baru">
+          <i data-lucide="external-link"></i>
+          <span class="ctrl-label-text">Tab Baru</span>
+        </button>
+        <button class="btn-inapp-ctrl btn-close-inapp" onclick="window.tutupModulUtility()" title="Tutup Modul">
+          <i data-lucide="x"></i>
+          <span>Tutup</span>
+        </button>
+      </div>
+    </div>
+    <div class="inapp-viewer-body" id="inapp-viewer-content">
+      <div class="inapp-loading">
+        <i data-lucide="loader-2" class="spin-anim"></i>
+        <span>Memuat konten modul...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAMBAH TAUTAN EKSTERNAL KHUSUS ADMIN -->
+<div class="modal-backdrop" id="modal-tambah-link" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px);">
+  <div style="background: #ffffff; width: 100%; max-width: 460px; border-radius: 18px; overflow: hidden; box-shadow: 0 14px 45px rgba(0,0,0,0.25); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #881337 0%, #be123c 100%); color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="font-size: 14.5px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="link"></i>
+        <span>Tambah Tautan Alat Baru</span>
+      </h3>
+      <button type="button" onclick="window.closeTambahLinkModal()" style="background: none; border: none; color: #fff; font-size: 22px; cursor: pointer;">&times;</button>
+    </div>
+    <form id="form-tambah-link" onsubmit="window.handleTambahLinkSubmit(event)" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Nama Aplikasi / Alat *</label>
+        <input type="text" id="link-nama" placeholder="Contoh: Form Evaluasi Lomba" required style="padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; outline: none;" />
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Tautan Web (URL Lengkap) *</label>
+        <input type="url" id="link-url" placeholder="https://..." required style="padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; outline: none;" />
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Akses Minimal *</label>
+        <select id="link-akses" required style="padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 700; outline: none; background: #fff;">
+          <option value="guest">Semua Pengguna (Tamu)</option>
+          <option value="anggota">Anggota Aktif</option>
+          <option value="pengurus">Pengurus Unit</option>
+          <option value="admin">Khusus Pembina / Admin</option>
+        </select>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">Ikon Aplikasi (.png / .jpg) *</label>
+        <input type="file" id="link-ikon-file" accept="image/*" required style="padding: 8px; border: 1.5px dashed #cbd5e1; border-radius: 10px; font-size: 12px;" />
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+        <button type="button" onclick="window.closeTambahLinkModal()" style="background: #e2e8f0; color: #334155; border: none; padding: 10px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Batal</button>
+        <button type="submit" id="btn-save-link" style="background: #be123c; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer;">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .utilitas-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+    font-family: inherit;
+  }
+
+  /* HEADER CARD */
+  .utilitas-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    flex-wrap: wrap;
+    gap: 12px;
+    transition: opacity 0.2s ease;
+  }
+  .utilitas-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .utilitas-icon-main {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #ffe4e6;
+    color: #be123c;
+    border: 1.5px solid #fecdd3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .utilitas-icon-main svg { width: 22px; height: 22px; }
+  .utilitas-header-left h2 {
+    font-size: 16px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+  }
+  .utilitas-header-left p {
+    font-size: 11.5px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+  }
+  .btn-tambah-link {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+    font-size: 11.5px;
+    font-weight: 800;
+    padding: 8px 14px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-tambah-link:hover {
+    background: #e2e8f0;
+    color: #be123c;
+  }
+  .btn-tambah-link svg { width: 14px; height: 14px; }
+
+  /* KISI MENU APLIKASI (DESKTOP TAMPILAN BESAR) */
+  .utilitas-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    width: 100%;
+    transition: opacity 0.2s ease;
+  }
+  .util-app-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px 12px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s, border-color 0.2s;
+  }
+  .util-app-card:hover {
+    transform: translateY(-4px);
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  }
+  .util-app-card:active {
+    transform: scale(0.97);
+  }
+
+  /* IKON SEGI 4 SUDUT TUMPUL (SQUIRCLE ANDROID STYLE) */
+  .util-app-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .util-app-card:hover .util-app-icon-wrap {
+    transform: scale(1.06);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  }
+  .util-app-icon-wrap svg { width: 34px; height: 34px; }
+  .util-app-icon-wrap img.tool-squircle-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 20px;
+    display: block;
+    animation: fadeInIcon 0.3s ease;
+  }
+  @keyframes fadeInIcon {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .util-app-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .util-app-badge {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+  .badge-modul {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  .badge-link {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .btn-del-link {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .btn-del-link:hover { background: #dc2626; color: #fff; }
+
+  /* AREA VIEWPORT EKSKLUSIF */
+  .inapp-viewer-container {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.25s ease-in-out;
+    width: 100%;
+  }
+  .inapp-viewer-header {
+    background: #f8fafc;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .inapp-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-back-grid {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-back-grid:hover {
+    background: #be123c;
+    border-color: #be123c;
+    color: #ffffff;
+  }
+  .btn-back-grid svg { width: 14px; height: 14px; }
+
+  .inapp-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  .inapp-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 0.2px;
+  }
+  .inapp-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-inapp-ctrl {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+  }
+  .btn-inapp-ctrl:hover { background: #f1f5f9; color: #0f172a; }
+  .btn-inapp-ctrl svg { width: 13px; height: 13px; }
+  .btn-close-inapp {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+  .btn-close-inapp:hover { background: #dc2626; color: #ffffff; }
+
+  .inapp-viewer-body {
+    width: 100%;
+    min-height: 600px;
+    background: #f8fafc;
+    position: relative;
+    padding: 0;
+  }
+  .inapp-iframe {
+    width: 100%;
+    height: 750px;
+    border: none;
+    display: block;
+    background: #ffffff;
+  }
+  .inapp-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 420px;
+    color: #64748b;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .spin-anim {
+    animation: spinAround 1s linear infinite;
+    color: #be123c;
+    width: 28px;
+    height: 28px;
+  }
+  @keyframes spinAround {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* RESPONSIF MOBILE (SESUAIKAN KARTU & IKON AGAR PROPORSIONAL) */
+  @media (max-width: 768px) {
+    .utilitas-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .util-app-card {
+      padding: 14px 6px 12px 6px;
+      border-radius: 14px;
+      gap: 6px;
+    }
+    .util-app-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+    }
+    .util-app-icon-wrap svg { width: 24px; height: 24px; }
+    .util-app-icon-wrap img.tool-squircle-img { border-radius: 16px; }
+    .util-app-title { font-size: 10.5px; }
+    
+    .ctrl-label-text { display: none; }
+    .inapp-viewer-header { padding: 10px 12px; }
+    .inapp-iframe { height: 620px; }
+  }
+  @media (max-width: 480px) {
+    .utilitas-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
