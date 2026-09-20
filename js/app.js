@@ -2,18 +2,12 @@
  * ==============================================================================
  * [CONTROLLER] MESIN UTAMA (ROUTER & AUTH) - PORTAL PMR SPADAN
  * ==============================================================================
- * Deskripsi:
- * Mengatur autentikasi akun, navigasi menu (Single Page Application Router),
- * pendaftaran, pengelolaan profil, lupa & ganti password, avatar mobile,
- * serta detektor verifikasi scan QR Code KTA.
- * ==============================================================================
  */
 
-// [STATE] Menyimpan data profil pengguna yang sedang login
 window.activeUserProfile = null;
 
 // [ROUTING] Konfigurasi Rute Menu Aplikasi
-// PERBAIKAN: Menggunakan huruf kecil (html/ & js/) agar kompatibel dengan Vercel (Linux)
+// PERBAIKAN: Menyesuaikan nama file dengan format baru yang Anda ubah.
 window.MENU_ROUTES = {
   dashboard: { html: "html/dashboard.html", script: "js/menujs/dashboard.js", title: "DASHBOARD", initFn: "initDashboardMenu" },
   anggota: { html: "html/anggota.html", script: "js/menujs/anggota.js", title: "DATA ANGGOTA", initFn: "initAnggotaMenu" },
@@ -21,11 +15,6 @@ window.MENU_ROUTES = {
   "pmr-tools": { html: "html/utilitas.html", script: "js/menujs/utilitas.js", title: "UTILITY", initFn: "renderUtilitasGrid" }
 };
 
-/**
- * [FITUR] Kompresi Gambar Lokal
- * Memperkecil resolusi foto profil sebelum diunggah ke Supabase Storage
- * untuk menghemat kuota penyimpanan.
- */
 window.compressProfileImage = function(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -61,11 +50,7 @@ window.compressProfileImage = function(file) {
   });
 };
 
-/**
- * [INISIALISASI] Dijalankan otomatis saat pertama kali halaman dimuat
- */
 document.addEventListener("DOMContentLoaded", async () => {
-  // Listener Event Autentikasi Supabase (Termasuk Password Recovery)
   if (window.db && window.db.auth) {
     window.db.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -74,24 +59,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // [FITUR] Deteksi jika pengguna membuka link dari scan QR Code Verifikasi KTA
   const urlParams = new URLSearchParams(window.location.search);
   const verifyId = urlParams.get("verify_id");
   if (verifyId && window.db) {
     await window.tampilkanModalVerifikasiKTA(verifyId);
   }
 
-  // Muat sesi pengguna dari database
   await window.verifySessionAndLoadUser();
-
-  // 1. DEFAULT MENU PERTAMA KALI DIBUKA: DASHBOARD
   window.navigateMenu("dashboard");
 });
 
-/**
- * [MODAL] Verifikasi Hasil Scan QR Code KTA
- * Menampilkan kartu pop-up berisi keabsahan identitas relawan.
- */
 window.tampilkanModalVerifikasiKTA = async function(userId) {
   try {
     const { data: user, error } = await window.db
@@ -154,10 +131,6 @@ window.tampilkanModalVerifikasiKTA = async function(userId) {
   }
 };
 
-/**
- * [AUTH] Verifikasi Sesi & Tampilan Header
- * Menyembunyikan/menampilkan tombol login berdasarkan status sesi.
- */
 window.verifySessionAndLoadUser = async function() {
   const userNameEl = document.getElementById("user-name");
   const userRoleEl = document.getElementById("user-role");
@@ -214,9 +187,6 @@ window.verifySessionAndLoadUser = async function() {
   if (window.lucide) lucide.createIcons();
 };
 
-/**
- * [KONTROL UI] Dropdown Profil Mobile
- */
 window.toggleMobileProfileDropdown = function(event) {
   event.stopPropagation();
   const drop = document.getElementById("mobile-profile-dropdown");
@@ -228,10 +198,6 @@ window.closeMobileProfileDropdown = function() {
   if (drop) drop.classList.remove("active");
 };
 
-/**
- * [ROUTING] Navigasi SPA Utama
- * Mengganti konten layar tengah secara dinamis tanpa memuat ulang halaman browser.
- */
 window.navigateMenu = async function(menuKey) {
   try {
     const route = window.MENU_ROUTES[menuKey];
@@ -240,7 +206,6 @@ window.navigateMenu = async function(menuKey) {
 
     if (!route || !viewport) return;
 
-    // KONTROL VISIBILITAS HEADER MOBILE: HANYA HILANG SAAT DI DASHBOARD
     if (menuKey === "dashboard") {
       document.body.classList.add("hide-mobile-header");
     } else {
@@ -250,15 +215,12 @@ window.navigateMenu = async function(menuKey) {
     if (mobileTitle) mobileTitle.textContent = `MENU: ${route.title}`;
     window.updateActiveButtons(menuKey);
 
-    // Indikator Loading
     viewport.innerHTML = `<div style="text-align: center; padding: 40px; color: #777;"><p style="font-weight: 600;">Memuat ${route.title}...</p></div>`;
 
-    // Fetch berkas HTML
     const response = await fetch(route.html);
     if (!response.ok) throw new Error(`Berkas tidak ditemukan (${response.status} ${response.statusText}): ${route.html}`);
     viewport.innerHTML = await response.text();
 
-    // Eksekusi Skrip JS terkait modul
     await window.loadMenuScript(route.script, route.initFn);
 
     if (window.lucide) lucide.createIcons();
@@ -275,9 +237,6 @@ window.navigateMenu = async function(menuKey) {
   }
 };
 
-/**
- * [KONTROL UI] Memperbarui status tombol menu (Aktif/Tidak)
- */
 window.updateActiveButtons = function(menuKey) {
   const desktopBtns = document.querySelectorAll(".sidebar .nav-item");
   const mobileBtns = document.querySelectorAll(".mobile-bottom-nav .mobile-nav-item");
@@ -290,9 +249,6 @@ window.updateActiveButtons = function(menuKey) {
   }
 };
 
-/**
- * [ROUTING] Memuat Injeksi Skrip Modul (JavaScript per Modul)
- */
 window.loadMenuScript = function(scriptSrc, initFunctionName) {
   return new Promise((resolve) => {
     const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
@@ -308,7 +264,6 @@ window.loadMenuScript = function(scriptSrc, initFunctionName) {
       resolve();
     };
 
-    // Cegah skrip dimuat ganda jika sudah pernah dibuka sebelumnya
     if (existingScript) { 
       executeInit(); 
       return; 

@@ -1,47 +1,64 @@
 /**
  * ==============================================================================
- * ENGINE MODUL KTA - PORTAL PMR SPADAN
- * Diperbarui:
- * - Disesuaikan untuk penampil in-app Utility (tanpa header ganda)
- * - Sinkronisasi hak akses user aktif langsung dari parent atau Supabase
- * - Logo SMPN 8 Balikpapan dan Logo PMI presisi berdampingan
- * - Desain kartu ramah remaja, ceria, dan siap cetak dua sisi (CR-80)
+ * [CONTROLLER] MODUL CETAK KTA - PORTAL PMR SPADAN
+ * ==============================================================================
+ * Deskripsi:
+ * Mengelola penarikan profil anggota dari Supabase, generator QR Code ID,
+ * dan perenderan kartu identitas dua sisi standar CR-80 untuk dicetak.
  * ==============================================================================
  */
 
+// [STATE]
 window.ktaAnggotaList = [];
 window.currentUserProfile = null;
 
+/**
+ * [HELPER] Resolver Klien Database
+ * Mengambil objek database dari scope global, window.parent (iframe),
+ * atau membuat koneksi mandiri sebagai cadangan terakhir.
+ */
 function getKtaDbClient() {
   if (window.db) return window.db;
   if (window.parent && window.parent.db) return window.parent.db;
+  if (typeof supabase !== "undefined") {
+    const url = window.SUPABASE_URL || (window.parent && window.parent.SUPABASE_URL) || "https://ndahxwqshyukqpnjkniw.supabase.co";
+    const key = window.SUPABASE_ANON_KEY || (window.parent && window.parent.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kYWh4d3FzaHl1a3Fwbmprbml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNjEzODUsImV4cCI6MjEwNDczNzM4NX0.lkxXa2M16275nkjNKnWN3KE5NT7J1BVoyEO7xVAxJt8";
+    window.db = supabase.createClient(url, key);
+    return window.db;
+  }
   return null;
 }
 
+/**
+ * [INISIALISASI] Memuat Data setelah DOM Siap
+ */
 document.addEventListener("DOMContentLoaded", async () => {
   await window.initKtaEngine();
 });
 
 window.initKtaEngine = async function() {
   await window.fetchActiveUser();
-
-  // Validasi Hak Akses: Hanya Guest dan Non-Aktif yang diblokir
   const isAuthorized = window.validateKtaAccess();
   if (!isAuthorized) return;
-
+  
   await window.fetchKtaData();
 };
 
+/**
+ * [AUTH] Mengambil Data Pengguna yang Sedang Login
+ */
 window.fetchActiveUser = async function() {
   try {
     if (window.parent && window.parent.activeUserProfile) {
       window.currentUserProfile = window.parent.activeUserProfile;
       return;
     }
-
+    
+    // Jika ada fungsi global dari parent
     if (typeof getCurrentUserProfile === "function") {
       window.currentUserProfile = await getCurrentUserProfile();
     } else {
+      // Fallback request ke Supabase mandiri
       const dbClient = getKtaDbClient();
       if (dbClient?.auth) {
         const { data: { user } } = await dbClient.auth.getUser();
@@ -52,10 +69,13 @@ window.fetchActiveUser = async function() {
       }
     }
   } catch (e) {
-    console.warn("Gagal membaca profil aktif KTA:", e);
+    console.warn("[KTA] Gagal membaca profil aktif:", e);
   }
 };
 
+/**
+ * [KONTROL] Validasi Hak Akses Modul
+ */
 window.validateKtaAccess = function() {
   const container = document.getElementById("kta-grid-list");
   const toolbar = document.querySelector(".kta-toolbar-clean");
@@ -80,7 +100,6 @@ window.validateKtaAccess = function() {
   const role = (window.currentUserProfile.jabatan || "").toLowerCase();
   const ket = (window.currentUserProfile.keterangan_jabatan || "").toLowerCase();
 
-  // Tolak pengguna Non-Aktif
   if (role === "non-aktif" || ket === "non-aktif") {
     if (toolbar) toolbar.style.display = "none";
     if (container) {
@@ -97,14 +116,21 @@ window.validateKtaAccess = function() {
     }
     return false;
   }
-
   return true;
 };
 
+/**
+ * [DATA] Tarik Data Anggota dari Basis Data
+ */
 window.fetchKtaData = async function() {
   const container = document.getElementById("kta-grid-list");
   const dbClient = getKtaDbClient();
-  if (!container || !dbClient) return;
+
+  if (!container) return;
+  if (!dbClient) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #dc2626; padding: 30px; font-weight: 700;">Koneksi Supabase tidak tersedia.</div>`;
+    return;
+  }
 
   try {
     const { data, error } = await dbClient
@@ -114,7 +140,7 @@ window.fetchKtaData = async function() {
 
     if (error) throw error;
 
-    // Filter anggota valid: sertakan Anggota Aktif, Pengurus, Admin, DAN ALUMNI
+    // Filter anggota valid
     const validMembers = (data || []).filter(u => {
       const ket = (u.keterangan_jabatan || "").toLowerCase();
       const jab = (u.jabatan || "").toLowerCase();
@@ -125,7 +151,7 @@ window.fetchKtaData = async function() {
     const userKet = (window.currentUserProfile?.keterangan_jabatan || "").toLowerCase();
     const isAdmin = userRole === "admin" || userKet.includes("pembina");
 
-    // Jika bukan admin, hanya tampilkan KTA miliknya sendiri
+    // Guest/Anggota biasa hanya bisa melihat KTA miliknya sendiri
     if (!isAdmin && window.currentUserProfile) {
       window.ktaAnggotaList = validMembers.filter(u => u.id === window.currentUserProfile.id);
       const filterWrapper = document.getElementById("kta-filter-wrapper");
@@ -137,11 +163,14 @@ window.fetchKtaData = async function() {
     window.checkMissingPhotos();
     window.renderKtaCards(window.ktaAnggotaList);
   } catch (err) {
-    console.error("Gagal memuat data KTA:", err);
+    console.error("[KTA] Gagal memuat data:", err);
     container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #dc2626; padding: 30px; font-weight: 700;">Gagal memuat data: ${err.message}</div>`;
   }
 };
 
+/**
+ * [UI] Periksa Ketersediaan Foto Profil Aktif
+ */
 window.checkMissingPhotos = function() {
   const alertContainer = document.getElementById("alert-photo-container");
   if (!alertContainer) return;
@@ -160,6 +189,9 @@ window.checkMissingPhotos = function() {
   }
 };
 
+/**
+ * [FILTER] Pencarian KTA (Nama/Alumni/Aktif)
+ */
 window.filterKtaData = function() {
   const q = (document.getElementById("kta-search")?.value || "").toLowerCase();
   const katVal = document.getElementById("filter-kta-kategori")?.value || "";
@@ -167,7 +199,7 @@ window.filterKtaData = function() {
   const filtered = window.ktaAnggotaList.filter(u => {
     const matchNama = (u.nama_lengkap || "").toLowerCase().includes(q) || (u.nama_panggilan || "").toLowerCase().includes(q);
     const ket = (u.keterangan_jabatan || "").toLowerCase();
-
+    
     let matchKat = true;
     if (katVal === "alumni") {
       matchKat = ket.includes("alumni");
@@ -187,6 +219,9 @@ window.formatTanggalLahir = function(tglStr) {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 };
 
+/**
+ * [RENDER] Buat Elemen DOM Kartu Identitas
+ */
 window.renderKtaCards = function(list) {
   const container = document.getElementById("kta-grid-list");
   if (!container) return;
@@ -196,7 +231,6 @@ window.renderKtaCards = function(list) {
     return;
   }
 
-  // Logo PMI & Logo SMPN 8 Balikpapan
   const logoPmiUrl = "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/profil-anggota/LOGO%20PMI%20untuk%20aplikasi.png";
   const logoSmpn8Url = "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/LOGO%20SMP%20NEGERI%208%20BALIKPAPAN%20-%20untuk%20website.png";
 
@@ -205,7 +239,7 @@ window.renderKtaCards = function(list) {
     const isAlumni = ket.includes("alumni");
     const hasPhoto = Boolean(user.foto_profil_url && user.foto_profil_url.trim() !== "");
 
-    const photoElement = hasPhoto
+    const photoElement = hasPhoto 
       ? `<img src="${user.foto_profil_url}" class="front-photo" alt="Foto ${user.nama_lengkap}" />`
       : `
         <div class="photo-placeholder-box">
@@ -214,25 +248,25 @@ window.renderKtaCards = function(list) {
         </div>
       `;
 
-    // Golongan Darah
+    // Format Golongan Darah
     const hasBlood = Boolean(user.golongan_darah && user.golongan_darah.trim() !== "");
     const rhesusSymbol = user.rhesus_darah === 'Positif' ? '+' : (user.rhesus_darah === 'Negatif' ? '-' : '');
     const bloodDisplay = hasBlood ? `${user.golongan_darah}${rhesusSymbol}` : "-";
-    const bloodBadgeHtml = hasBlood
+
+    const bloodBadgeHtml = hasBlood 
       ? `
         <div class="blood-badge-floating">
           <small>GOL</small>
           <b>${bloodDisplay}</b>
         </div>
-      `
-      : "";
+      ` : "";
 
-    // Badge status di kartu depan
-    const roleBadgeHtml = isAlumni
+    // Badge Kartu
+    const roleBadgeHtml = isAlumni 
       ? `<span class="alumni-banner-badge">ALUMNI PMR</span>`
       : `<span class="front-role-badge">${user.keterangan_jabatan || user.jabatan || 'Anggota'}</span>`;
 
-    // Data teks QR Code
+    // QR Code Generation Content
     const statusTeks = isAlumni ? "ALUMNI RESMI" : "AKTIF";
     const qrTextContent = `KARTU IDENTITAS PMR SPADAN\n----------------------------\nNama: ${user.nama_lengkap}\nGolongan Darah: ${bloodDisplay}\nTanggal Lahir: ${window.formatTanggalLahir(user.tanggal_lahir)}\nID: ${user.id.substring(0, 8).toUpperCase()}\nTahun Bergabung: ${user.tahun_bergabung || '-'}\nKategori: ${isAlumni ? 'ALUMNI' : (user.keterangan_jabatan || user.jabatan || 'Anggota')}\nStatus: ${statusTeks}\n----------------------------\nSMP Negeri 8 Balikpapan`;
     const qrCodeApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=${encodeURIComponent(qrTextContent)}`;
@@ -322,13 +356,19 @@ window.renderKtaCards = function(list) {
   if (window.lucide) lucide.createIcons();
 };
 
+/**
+ * [AKSI CETAK] Memindahkan konten kartu ke Area Print
+ */
 window.printKtaPair = function(userId) {
   const frontHtml = document.getElementById(`card-front-${userId}`)?.outerHTML;
   const backHtml = document.getElementById(`card-back-${userId}`)?.outerHTML;
+
   if (!frontHtml || !backHtml) return;
 
   const printArea = document.getElementById("print-area");
   printArea.innerHTML = frontHtml + backHtml;
+  
   window.print();
+  
   printArea.innerHTML = "";
 };
