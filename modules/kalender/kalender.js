@@ -1,18 +1,23 @@
 /**
  * ==============================================================================
- * CONTROLLER MODUL KALENDER & AGENDA KEGIATAN - PMR SPADAN
- * Perbaikan Vercel & Supabase:
- * - Mengambil instance database secara berlapis (window.db / parent.db / createClient langsung)
- * - Penyesuaian kolom 'tampilkan_di_das' sesuai schema Supabase
- * - Default menampilkan seluruh agenda mendatang
+ * [CONTROLLER] MODUL KALENDER & AGENDA KEGIATAN - PMR SPADAN
+ * ==============================================================================
+ * Deskripsi:
+ * Mengatur kalender interaktif bulanan, penyaringan kegiatan mendatang,
+ * dan penambahan jadwal baru dengan sinkronisasi ke tabel 'agenda_kegiatan'.
  * ==============================================================================
  */
 
+// [STATE] Pengaturan Penanggalan & Data Agenda
 window.moduleCalCurrentDate = new Date();
 window.agendaKegiatanList = [];
 window.selectedModuleCalDate = null;
 
-function getSupabaseClient() {
+/**
+ * [HELPER] Resolver Klien Database Supabase
+ * Mengambil objek database dari scope global atau instance window.parent secara aman.
+ */
+function getKalenderDbClient() {
   if (window.db) return window.db;
   if (window.parent && window.parent.db) return window.parent.db;
   if (typeof supabase !== "undefined") {
@@ -24,11 +29,15 @@ function getSupabaseClient() {
   return null;
 }
 
+/**
+ * [INISIALISASI] Memulai Modul Kalender
+ */
 window.initKalenderModule = async function() {
   const btnTambah = document.getElementById("btn-tambah-agenda");
   window.moduleCalCurrentDate = new Date();
   window.selectedModuleCalDate = null;
 
+  // Evaluasi Wewenang: Khusus Admin, Pengurus, dan Pembina
   const userProfile = window.activeUserProfile || (window.parent && window.parent.activeUserProfile);
   const userRole = (userProfile?.jabatan || "").toLowerCase();
   const ket = (userProfile?.keterangan_jabatan || "").toLowerCase();
@@ -41,9 +50,12 @@ window.initKalenderModule = async function() {
   await window.loadAgendaData();
 };
 
+/**
+ * [DATABASE] Memuat Seluruh Agenda Kegiatan dari Supabase
+ */
 window.loadAgendaData = async function() {
   const container = document.getElementById("agenda-items-container");
-  const dbClient = getSupabaseClient();
+  const dbClient = getKalenderDbClient();
 
   if (!container) return;
   if (!dbClient) {
@@ -65,11 +77,14 @@ window.loadAgendaData = async function() {
     window.renderModuleVisualCalendar();
     window.resetAgendaToUpcoming();
   } catch (err) {
-    console.error("Gagal load agenda:", err);
+    console.error("[Kalender] Gagal load agenda:", err);
     container.innerHTML = `<div style="color:#dc2626; font-size:12px; padding:20px; text-align:center;">Gagal memuat agenda: ${err.message}</div>`;
   }
 };
 
+/* ==============================================================================
+   1. PAPAN KALENDER VISUAL
+   ============================================================================== */
 window.changeModuleCalMonth = function(delta) {
   window.moduleCalCurrentDate.setMonth(window.moduleCalCurrentDate.getMonth() + delta);
   window.renderModuleVisualCalendar();
@@ -93,6 +108,7 @@ window.renderModuleVisualCalendar = function() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
 
+  // Memetakan agenda pada bulan berjalan
   const eventsByDay = {};
   window.agendaKegiatanList.forEach(ag => {
     if (ag.tanggal_mulai) {
@@ -152,6 +168,9 @@ window.selectModuleCalDate = function(dateStr, cellEl) {
   window.renderAgendaCardsIntoBox(matching, `Tidak ada kegiatan yang dijadwalkan pada tanggal ${d}/${m}/${y}.`);
 };
 
+/* ==============================================================================
+   2. DAFTAR AGENDA MENDATANG
+   ============================================================================== */
 window.resetAgendaToUpcoming = function() {
   window.selectedModuleCalDate = null;
   document.querySelectorAll(".cal-cell").forEach(c => c.classList.remove("selected"));
@@ -171,7 +190,6 @@ window.resetAgendaToUpcoming = function() {
     return endRef >= todayStr;
   });
 
-  // Jika tidak ada agenda di masa depan, tampilkan semua agenda yang tercatat
   const displayItems = upcomingAgendas.length > 0 ? upcomingAgendas : window.agendaKegiatanList;
   window.renderAgendaCardsIntoBox(displayItems, "Belum ada agenda kegiatan yang tercatat.");
 };
@@ -242,6 +260,9 @@ window.renderAgendaCardsIntoBox = function(items, emptyMsg) {
   if (window.lucide) lucide.createIcons();
 };
 
+/* ==============================================================================
+   3. MODAL TAMBAH & HAPUS AGENDA
+   ============================================================================== */
 window.openTambahAgendaModal = function() {
   document.getElementById("form-tambah-agenda")?.reset();
   const today = new Date().toISOString().split("T")[0];
@@ -261,7 +282,7 @@ window.closeTambahAgendaModal = function() {
 window.handleTambahAgendaSubmit = async function(event) {
   event.preventDefault();
   const btn = document.getElementById("btn-save-agenda");
-  const dbClient = getSupabaseClient();
+  const dbClient = getKalenderDbClient();
   const userProfile = window.activeUserProfile || (window.parent && window.parent.activeUserProfile);
 
   if (!dbClient) {
@@ -275,6 +296,7 @@ window.handleTambahAgendaSubmit = async function(event) {
   try {
     const isTampilDashboard = document.getElementById("agenda-tampilkan-dashboard").checked;
 
+    // Payload disesuaikan dengan skema kolom Supabase (tampilkan_di_das)
     const payload = {
       judul: document.getElementById("agenda-judul").value.trim(),
       kategori: document.getElementById("agenda-kategori").value,
@@ -304,7 +326,7 @@ window.handleTambahAgendaSubmit = async function(event) {
 
 window.hapusAgendaKegiatan = async function(agendaId) {
   if (!confirm("Apakah Anda yakin ingin menghapus agenda ini?")) return;
-  const dbClient = getSupabaseClient();
+  const dbClient = getKalenderDbClient();
   if (!dbClient) return;
 
   try {
