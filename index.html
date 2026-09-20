@@ -1,38 +1,58 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <!-- [META] Konfigurasi Karakter & Tampilan Responsif -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PORTAL PMR SPADAN</title>
+
+  <!-- [LIBRARY] CDN Lucide Icons & Supabase Client -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Font Elegan & Modern Plus Jakarta Sans -->
+
+  <!-- [FONT] Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
+
   <style>
     /* =========================================
-       PALET WARNA MODERN, ENERGIK & RAMAH REMAJA
+       [TEMA] PALET WARNA UTAMA & RESET TAMPILAN
        ========================================= */
-    :root { 
-      --maroon: #991b1b; 
+    :root {
+      --maroon: #991b1b;
       --maroon-dark: #7f1d1d;
-      --red: #e11d48;    
-      --gold: #f59e0b;   
-      --white: #ffffff; 
-      --canvas: #f1f5f9; /* Slate bersih dan nyaman di mata */
-      --text-dark: #0f172a; 
+      --red: #e11d48;
+      --gold: #f59e0b;
+      --white: #ffffff;
+      --canvas: #f1f5f9;
+      --text-dark: #0f172a;
       --text-muted: #64748b;
     }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--canvas); color: var(--text-dark); min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
-    
-    svg.lucide { stroke-width: 2.2px !important; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--canvas);
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    svg.lucide {
+      stroke-width: 2.2px !important;
+    }
 
     /* =========================================
-       1. FLOATING HEADER (DESKTOP & MOBILE)
+       1. FLOATING HEADER
        ========================================= */
     .floating-header {
       position: fixed;
@@ -40,208 +60,596 @@
       height: 70px;
       background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 100%);
       border-radius: 18px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 0 20px;
       box-shadow: 0 8px 24px rgba(153, 27, 27, 0.22);
       z-index: 1000;
       transition: all 0.25s ease-in-out;
     }
 
-    .brand-section { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { 
-      width: 42px; height: 42px; background: var(--white); border-radius: 12px; 
-      display: flex; align-items: center; justify-content: center; 
-      border: 1px solid #e2e8f0; padding: 4px; flex-shrink: 0; 
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: var(--white);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e2e8f0;
+      padding: 4px;
+      flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .brand-icon img { width: 100%; height: 100%; object-fit: contain; }
-    .brand-title h1 { font-size: 15px; font-weight: 900; color: var(--white); letter-spacing: 0.5px; line-height: 1.1; }
-    .brand-title p { font-size: 9.5px; color: #fecdd3; font-weight: 700; letter-spacing: 0.8px; }
 
-    /* AUTH & PROFILE AREA DI HEADER */
-    .header-actions { position: relative; display: flex; align-items: center; }
-    
-    .auth-group { display: flex; align-items: center; gap: 10px; }
+    .brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-title h1 {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+    }
+
+    .brand-title p {
+      font-size: 9.5px;
+      color: #fecdd3;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+    }
+
+    /* AUTH & PROFILE AREA HEADER */
+    .header-actions {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .btn-auth-gold {
-      background: #ffffff; color: var(--maroon); border: none; padding: 8px 16px; border-radius: 12px;
-      font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;
-      cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: all 0.2s;
+      background: #ffffff;
+      color: var(--maroon);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: all 0.2s;
     }
-    .btn-auth-gold:hover { background: #f8fafc; transform: translateY(-1px); }
-    
+
+    .btn-auth-gold:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+
     .btn-auth-outline {
-      background: rgba(255,255,255,0.18); color: var(--white); border: 1px solid rgba(255,255,255,0.35); padding: 7px 14px; border-radius: 12px;
-      font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
-      cursor: pointer; transition: background 0.2s;
+      background: rgba(255,255,255,0.18);
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 7px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .btn-auth-outline:hover { background: rgba(255,255,255,0.28); }
 
-    .user-greeting { text-align: right; margin-right: 12px; line-height: 1.2; }
-    .user-greeting .u-name { font-size: 12px; font-weight: 800; color: var(--white); }
-    .user-greeting .u-role { font-size: 10px; font-weight: 600; color: #fecdd3; }
+    .btn-auth-outline:hover {
+      background: rgba(255,255,255,0.28);
+    }
 
-    .profile-wrapper { position: relative; cursor: pointer; display: flex; align-items: center; }
-    .profile-avatar { 
-      width: 40px; height: 40px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.4); 
-      object-fit: cover; object-position: top; background: var(--white); 
-      display: flex; align-items: center; justify-content: center; 
-      font-weight: 800; font-size: 16px; color: var(--maroon); overflow: hidden;
+    .user-greeting {
+      text-align: right;
+      margin-right: 12px;
+      line-height: 1.2;
+    }
+
+    .user-greeting .u-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--white);
+    }
+
+    .user-greeting .u-role {
+      font-size: 10px;
+      font-weight: 600;
+      color: #fecdd3;
+    }
+
+    .profile-wrapper {
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .profile-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.4);
+      object-fit: cover;
+      object-position: top;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--maroon);
+      overflow: hidden;
       transition: border-color 0.2s;
     }
-    .profile-wrapper:hover .profile-avatar { border-color: var(--white); }
-    .gear-badge { 
-      position: absolute; bottom: -4px; right: -4px; background: #0f172a; color: var(--white); 
-      border: 2px solid var(--maroon); width: 16px; height: 16px; border-radius: 50%; 
-      display: flex; align-items: center; justify-content: center; 
-    }
-    .gear-badge svg { width: 9px; height: 9px; }
 
-    /* DROPDOWN PROFIL */
-    .profile-dropdown { 
-      position: absolute; top: 55px; right: 0; background: var(--white); border-radius: 14px; 
-      box-shadow: 0 12px 30px rgba(0,0,0,0.12); border: 1px solid #e2e8f0; 
-      display: none; flex-direction: column; width: 160px; z-index: 10001; 
-      overflow: hidden; animation: fadeIn 0.15s ease forwards; 
+    .profile-wrapper:hover .profile-avatar {
+      border-color: var(--white);
     }
-    .profile-dropdown.active { display: flex; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-    .dropdown-item { padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: var(--text-dark); border: none; background: none; width: 100%; text-align: left; cursor: pointer; transition: background 0.2s; }
-    .dropdown-item:hover { background: #f8fafc; color: var(--maroon); }
-    .dropdown-item.danger { color: #dc2626; border-top: 1px solid #f1f5f9; }
+
+    .gear-badge {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      background: #0f172a;
+      color: var(--white);
+      border: 2px solid var(--maroon);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gear-badge svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    /* DROPDOWN MENU PROFIL */
+    .profile-dropdown {
+      position: absolute;
+      top: 55px;
+      right: 0;
+      background: var(--white);
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+      border: 1px solid #e2e8f0;
+      display: none;
+      flex-direction: column;
+      width: 160px;
+      z-index: 10001;
+      overflow: hidden;
+      animation: fadeIn 0.15s ease forwards;
+    }
+
+    .profile-dropdown.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dropdown-item {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-dark);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: #f8fafc;
+      color: var(--maroon);
+    }
+
+    .dropdown-item.danger {
+      color: #dc2626;
+      border-top: 1px solid #f1f5f9;
+    }
 
     /* =========================================
-       2. DESKTOP LEFT MENU
+       2. DESKTOP SIDEBAR MENU
        ========================================= */
-    .sidebar { 
+    .sidebar {
       position: fixed;
-      top: 105px; left: 15px; width: 85px;
-      display: flex; flex-direction: column; gap: 12px;
+      top: 105px;
+      left: 15px;
+      width: 85px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       z-index: 990;
     }
-    .nav-item { 
-      width: 85px; height: 85px; 
-      background: linear-gradient(145deg, #991b1b, #7f1d1d); 
+
+    .nav-item {
+      width: 85px;
+      height: 85px;
+      background: linear-gradient(145deg, #991b1b, #7f1d1d);
       border-radius: 20px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 6px; 
-      color: rgba(255, 255, 255, 0.85); 
-      font-weight: 800; font-size: 9px; text-transform: uppercase;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 800;
+      font-size: 9px;
+      text-transform: uppercase;
       box-shadow: 0 4px 14px rgba(127, 29, 29, 0.22);
-      cursor: pointer; transition: all 0.2s ease;
+      cursor: pointer;
+      transition: all 0.2s ease;
       text-decoration: none;
       border: none;
     }
-    .nav-item svg { width: 24px; height: 24px; color: rgba(255, 255, 255, 0.85); }
-    .nav-item:hover { transform: translateY(-2px); color: var(--white); box-shadow: 0 8px 18px rgba(127, 29, 29, 0.32); }
-    
-    .nav-item.active { 
-      background: var(--white); 
-      color: var(--maroon); 
-      box-shadow: 0 6px 20px rgba(0,0,0,0.1); 
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+      color: rgba(255, 255, 255, 0.85);
     }
-    .nav-item.active svg { 
-      color: var(--maroon); 
+
+    .nav-item:hover {
+      transform: translateY(-2px);
+      color: var(--white);
+      box-shadow: 0 8px 18px rgba(127, 29, 29, 0.32);
     }
-    
-    .mobile-bottom-nav { display: none; }
+
+    .nav-item.active {
+      background: var(--white);
+      color: var(--maroon);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    .nav-item.active svg {
+      color: var(--maroon);
+    }
+
+    .mobile-bottom-nav {
+      display: none;
+    }
 
     /* =========================================
-       3. MAIN CONTENT AREA
+       3. MAIN VIEWPORT AREA
        ========================================= */
-    .main-content { 
-      margin-top: 105px; margin-left: 115px; width: calc(100% - 130px); 
-      padding: 10px 10px 30px 10px; display: flex; justify-content: center; 
+    .main-content {
+      margin-top: 105px;
+      margin-left: 115px;
+      width: calc(100% - 130px);
+      padding: 10px 10px 30px 10px;
+      display: flex;
+      justify-content: center;
       transition: margin-top 0.2s ease;
     }
-    #app-viewport { width: 100%; max-width: 1100px; }
+
+    #app-viewport {
+      width: 100%;
+      max-width: 1100px;
+    }
 
     /* =========================================
-       4. RESPONSIVE MOBILE LAYOUT
+       4. RESPONSIVE MOBILE TAMPILAN
        ========================================= */
     @media (max-width: 768px) {
-      .sidebar { display: none; }
-      
-      .floating-header { top: 10px; left: 10px; right: 10px; height: 60px; border-radius: 14px; padding: 0 12px; }
-      .brand-icon { width: 34px; height: 34px; border-radius: 8px; }
-      .brand-title h1 { font-size: 13px; }
-      .brand-title p { font-size: 8.5px; }
-      .user-greeting { display: none; }
-      
-      .btn-auth-gold span, .btn-auth-outline span { display: none; }
-      .btn-auth-gold { padding: 8px; border-radius: 10px; }
-      .btn-auth-outline { padding: 7px; border-radius: 10px; }
+      .sidebar {
+        display: none;
+      }
 
-      .main-content { margin-top: 85px; margin-left: 0; width: 100%; margin-bottom: 90px; padding: 10px; }
+      .floating-header {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        height: 60px;
+        border-radius: 14px;
+        padding: 0 12px;
+      }
 
-      /* ATURAN KHUSUS DASHBOARD DI HP: HEADER DISEMBUNYIKAN */
+      .brand-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+      }
+
+      .brand-title h1 {
+        font-size: 13px;
+      }
+
+      .brand-title p {
+        font-size: 8.5px;
+      }
+
+      .user-greeting {
+        display: none;
+      }
+
+      .btn-auth-gold span, .btn-auth-outline span {
+        display: none;
+      }
+
+      .btn-auth-gold {
+        padding: 8px;
+        border-radius: 10px;
+      }
+
+      .btn-auth-outline {
+        padding: 7px;
+        border-radius: 10px;
+      }
+
+      .main-content {
+        margin-top: 85px;
+        margin-left: 0;
+        width: 100%;
+        margin-bottom: 90px;
+        padding: 10px;
+      }
+
+      /* Sembunyikan floating header saat berada di Dashboard mobile */
       body.hide-mobile-header .floating-header {
         display: none !important;
       }
+
       body.hide-mobile-header .main-content {
-        margin-top: 10px !important; /* Hilangkan jarak atas karena header tidak ada */
+        margin-top: 10px !important;
       }
 
       .mobile-bottom-nav {
-        display: flex; justify-content: space-evenly; align-items: center;
-        position: fixed; bottom: 10px; left: 10px; right: 10px;
-        background: linear-gradient(135deg, #881337 0%, #7f1d1d 100%); 
-        height: 64px; border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(127, 29, 29, 0.35); z-index: 1000;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        background: linear-gradient(135deg, #881337 0%, #7f1d1d 100%);
+        height: 64px;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(127, 29, 29, 0.35);
+        z-index: 1000;
         padding: 0 6px;
         gap: 6px;
       }
+
       .mobile-nav-item {
-        width: 100%; height: 50px; 
-        background: transparent; border: none;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 2px; 
-        color: rgba(255,255,255,0.75); 
-        font-size: 8.5px; font-weight: 800; text-transform: uppercase;
-        cursor: pointer; transition: all 0.2s ease;
+        width: 100%;
+        height: 50px;
+        background: transparent;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        color: rgba(255,255,255,0.75);
+        font-size: 8.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s ease;
         border-radius: 12px;
       }
-      .mobile-nav-item svg { width: 19px; height: 19px; }
-      
-      .mobile-nav-item.active { 
-        background: var(--white); 
-        color: var(--maroon); 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+
+      .mobile-nav-item svg {
+        width: 19px;
+        height: 19px;
       }
-      .mobile-nav-item.active svg { 
-        color: var(--maroon); 
+
+      .mobile-nav-item.active {
+        background: var(--white);
+        color: var(--maroon);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+
+      .mobile-nav-item.active svg {
+        color: var(--maroon);
       }
     }
 
     /* =========================================
-       5. DESAIN MODAL
+       5. DESAIN MODAL DIALOG
        ========================================= */
-    .app-modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 16px; backdrop-filter: blur(4px); }
-    .app-modal-backdrop.active { display: flex; }
-    .app-modal-card { background: var(--white); width: 100%; max-width: 520px; height: 88vh; max-height: 88vh; border-radius: 18px; display: flex; flex-direction: column; box-shadow: 0 14px 45px rgba(0, 0, 0, 0.22); overflow: hidden; }
-    .app-modal-header { background: linear-gradient(135deg, var(--maroon-dark), var(--maroon)); color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    .app-modal-header h3 { font-size: 15px; font-weight: 800; }
-    .app-modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 24px; cursor: pointer; transition: color 0.2s; }
-    .app-modal-close:hover { color: #fff; }
-    
-    .modal-form-wrapper { display: flex; flex-direction: column; height: calc(100% - 55px); overflow: hidden; }
-    .app-modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
-    .modal-grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 580px) { .modal-grid-row { grid-template-columns: 1fr; } }
-    .modal-form-group { display: flex; flex-direction: column; gap: 6px; }
-    .modal-form-group label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-    .modal-form-group input, .modal-form-group select, .modal-form-group textarea { padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; outline: none; width: 100%; background-color: var(--white); color: var(--text-dark); transition: border 0.2s; }
-    .modal-form-group input:focus, .modal-form-group select:focus, .modal-form-group textarea:focus { border-color: var(--maroon); box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.12); }
-    
-    .app-modal-footer { padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
-    .btn-modal-cancel { background: #e2e8f0; color: var(--text-dark); border: none; padding: 10px 18px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-    .btn-modal-cancel:hover { background: #cbd5e1; }
-    .btn-modal-submit { background: var(--maroon); color: #fff; border: none; padding: 10px 22px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; transition: background 0.2s; }
-    .btn-modal-submit:hover { background: var(--red); }
+    .app-modal-backdrop {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+
+    .app-modal-backdrop.active {
+      display: flex;
+    }
+
+    .app-modal-card {
+      background: var(--white);
+      width: 100%;
+      max-width: 520px;
+      height: 88vh;
+      max-height: 88vh;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 14px 45px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+    }
+
+    .app-modal-header {
+      background: linear-gradient(135deg, var(--maroon-dark), var(--maroon));
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .app-modal-header h3 {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .app-modal-close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 24px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .app-modal-close:hover {
+      color: #fff;
+    }
+
+    .modal-form-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: calc(100% - 55px);
+      overflow: hidden;
+    }
+
+    .app-modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-grid-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 580px) {
+      .modal-grid-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .modal-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .modal-form-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .modal-form-group input,
+    .modal-form-group select,
+    .modal-form-group textarea {
+      padding: 10px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+      background-color: var(--white);
+      color: var(--text-dark);
+      transition: border 0.2s;
+    }
+
+    .modal-form-group input:focus,
+    .modal-form-group select:focus,
+    .modal-form-group textarea:focus {
+      border-color: var(--maroon);
+      box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.12);
+    }
+
+    .app-modal-footer {
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-modal-cancel {
+      background: #e2e8f0;
+      color: var(--text-dark);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-modal-cancel:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-modal-submit {
+      background: var(--maroon);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-modal-submit:hover {
+      background: var(--red);
+    }
   </style>
 </head>
 <body>
 
-  <!-- FLOATING HEADER -->
+  <!-- ==========================================================================
+       1. FLOATING HEADER (LOGOUT / LOGIN ACTIONS & USER PROFILE)
+       ========================================================================== -->
   <header class="floating-header">
     <div class="brand-section">
       <div class="brand-icon">
@@ -252,9 +660,9 @@
         <p>SMPN 8 BALIKPAPAN</p>
       </div>
     </div>
-    
+
     <div class="header-actions">
-      <!-- Aksi Tamu (Login & Register) -->
+      <!-- [GUEST MODE] Tombol Masuk & Daftar untuk Tamu -->
       <div class="auth-group" id="guest-action-group">
         <button class="btn-auth-gold" onclick="window.openLoginModal()" title="Masuk Akun">
           <i data-lucide="log-in"></i><span>Masuk</span>
@@ -264,7 +672,7 @@
         </button>
       </div>
 
-      <!-- Aksi Logged In (Profil & Pengaturan) -->
+      <!-- [LOGGED IN] Profil & Wewenang Akun -->
       <div class="auth-group" id="logged-action-group" style="display: none;">
         <div class="user-greeting">
           <p id="user-name" class="u-name">Tamu</p>
@@ -276,7 +684,7 @@
         </div>
       </div>
 
-      <!-- Dropdown Menu Profil -->
+      <!-- [DROPDOWN] Menu Opsi Profil -->
       <div class="profile-dropdown" id="mobile-profile-dropdown">
         <button class="dropdown-item" onclick="window.openEditProfileModal(); window.closeMobileProfileDropdown();">
           <i data-lucide="user" style="width: 14px; height: 14px; color: var(--maroon);"></i>
@@ -290,7 +698,9 @@
     </div>
   </header>
 
-  <!-- DESKTOP LEFT MENU (MENU TOOLS DIUBAH KE UTILITY) -->
+  <!-- ==========================================================================
+       2. DESKTOP SIDEBAR NAVIGATION
+       ========================================================================== -->
   <nav class="sidebar desktop-nav">
     <button class="nav-item" type="button" onclick="window.navigateMenu('dashboard')">
       <i data-lucide="activity"></i><span>DASHBOARD</span>
@@ -306,7 +716,9 @@
     </button>
   </nav>
 
-  <!-- BOTTOM NAVIGATION HP (MENU TOOLS DIUBAH KE UTILITY) -->
+  <!-- ==========================================================================
+       3. MOBILE BOTTOM NAVIGATION
+       ========================================================================== -->
   <nav class="mobile-bottom-nav">
     <button class="mobile-nav-item" type="button" onclick="window.navigateMenu('dashboard')">
       <i data-lucide="activity"></i><span>Dashboard</span>
@@ -322,11 +734,16 @@
     </button>
   </nav>
 
-  <!-- KONTEN TENGAH -->
+  <!-- ==========================================================================
+       4. MAIN VIEWPORT INJECTION
+       ========================================================================== -->
   <main class="main-content">
     <div id="app-viewport"></div>
   </main>
 
+  <!-- ==========================================================================
+       5. MODAL FORMULIR (LOGIN, LUPA SANDI, SET SANDI, REGISTER, EDIT PROFIL)
+       ========================================================================== -->
   <!-- MODAL LOGIN -->
   <div class="app-modal-backdrop" id="modal-auth-login">
     <div class="app-modal-card" style="height: auto; max-height: 85vh;">
@@ -336,8 +753,14 @@
       </div>
       <form onsubmit="window.handleLoginSubmit(event)" style="display: flex; flex-direction: column;">
         <div class="app-modal-body">
-          <div class="modal-form-group"><label>Email Akun</label><input type="email" id="login-email" placeholder="nama@email.com" required /></div>
-          <div class="modal-form-group"><label>Password</label><input type="password" id="login-password" placeholder="Masukkan kata sandi" required /></div>
+          <div class="modal-form-group">
+            <label>Email Akun</label>
+            <input type="email" id="login-email" placeholder="nama@email.com" required />
+          </div>
+          <div class="modal-form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Masukkan kata sandi" required />
+          </div>
           <div style="text-align: right; margin-top: 2px;">
             <button type="button" onclick="window.openForgotPasswordModal()" style="background:none; border:none; color:var(--maroon); font-size:11px; font-weight:700; cursor:pointer; text-decoration:underline;">Lupa kata sandi?</button>
           </div>
@@ -359,7 +782,9 @@
       </div>
       <form onsubmit="window.handleForgotPasswordSubmit(event)" style="display: flex; flex-direction: column;">
         <div class="app-modal-body">
-          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; font-weight: 500;">Masukkan email akun PMR Anda yang telah terdaftar. Kami akan mengirimkan tautan untuk membuat kata sandi baru.</p>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; font-weight: 500;">
+            Masukkan email akun PMR Anda yang telah terdaftar. Kami akan mengirimkan tautan untuk membuat kata sandi baru.
+          </p>
           <div class="modal-form-group" style="margin-top: 4px;">
             <label>Email Terdaftar</label>
             <input type="email" id="forgot-email" placeholder="nama@email.com" required />
@@ -381,7 +806,9 @@
       </div>
       <form onsubmit="window.handleSetNewPasswordSubmit(event)" style="display: flex; flex-direction: column;">
         <div class="app-modal-body">
-          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; font-weight: 500;">Silakan buat kata sandi baru untuk akun Anda (minimal 6 karakter).</p>
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; font-weight: 500;">
+            Silakan buat kata sandi baru untuk akun Anda (minimal 6 karakter).
+          </p>
           <div class="modal-form-group" style="margin-top: 4px;">
             <label>Kata Sandi Baru</label>
             <input type="password" id="reset-new-password" placeholder="Minimal 6 karakter" minlength="6" required />
@@ -408,28 +835,49 @@
       <form id="form-register-full" onsubmit="window.handleRegisterSubmit(event)" class="modal-form-wrapper">
         <div class="app-modal-body">
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>Nama Lengkap (Otomatis Kapital) *</label><input type="text" id="reg-nama-lengkap" style="text-transform: uppercase;" required /></div>
-            <div class="modal-form-group"><label>Nama Panggilan *</label><input type="text" id="reg-nama-panggilan" required /></div>
+            <div class="modal-form-group">
+              <label>Nama Lengkap (Otomatis Kapital) *</label>
+              <input type="text" id="reg-nama-lengkap" style="text-transform: uppercase;" required />
+            </div>
+            <div class="modal-form-group">
+              <label>Nama Panggilan *</label>
+              <input type="text" id="reg-nama-panggilan" required />
+            </div>
           </div>
           <div class="modal-grid-row">
             <div class="modal-form-group">
               <label>Jenis Kelamin *</label>
               <select id="reg-jenis-kelamin" required>
-                <option value="">Pilih Kelamin</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option>
+                <option value="">Pilih Kelamin</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>Tanggal Lahir *</label><input type="date" id="reg-tanggal-lahir" required /></div>
+            <div class="modal-form-group">
+              <label>Tanggal Lahir *</label>
+              <input type="date" id="reg-tanggal-lahir" required />
+            </div>
           </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>Kelas *</label><input type="text" id="reg-kelas" placeholder="Contoh: 7A, 8B" required /></div>
-            <div class="modal-form-group"><label>Tahun Bergabung *</label><input type="number" id="reg-tahun-bergabung" placeholder="Contoh: 2023" required /></div>
+            <div class="modal-form-group">
+              <label>Kelas *</label>
+              <input type="text" id="reg-kelas" placeholder="Contoh: 7A, 8B" required />
+            </div>
+            <div class="modal-form-group">
+              <label>Tahun Bergabung *</label>
+              <input type="number" id="reg-tahun-bergabung" placeholder="Contoh: 2026" required />
+            </div>
           </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>NISN (Opsional)</label><input type="text" id="reg-nisn" placeholder="NISN" /></div>
+            <div class="modal-form-group">
+              <label>NISN (Opsional)</label>
+              <input type="text" id="reg-nisn" placeholder="NISN" />
+            </div>
             <div class="modal-form-group">
               <label>Kategori Pendaftaran *</label>
               <select id="reg-keterangan-jabatan" required>
-                <option value="Anggota">Anggota</option><option value="Alumni">Alumni</option>
+                <option value="Anggota">Anggota</option>
+                <option value="Alumni">Alumni</option>
               </select>
             </div>
           </div>
@@ -437,25 +885,49 @@
             <div class="modal-form-group">
               <label>Golongan Darah</label>
               <select id="reg-golongan-darah">
-                <option value="">Lewati</option><option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
+                <option value="">Lewati</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="AB">AB</option>
+                <option value="O">O</option>
               </select>
             </div>
             <div class="modal-form-group">
               <label>Rhesus Darah</label>
               <select id="reg-rhesus-darah">
-                <option value="">Lewati</option><option value="Positif">Positif (+)</option><option value="Negatif">Negatif (-)</option>
+                <option value="">Lewati</option>
+                <option value="Positif">Positif (+)</option>
+                <option value="Negatif">Negatif (-)</option>
               </select>
             </div>
           </div>
-          <div class="modal-form-group"><label>Unggah Foto Profil (Opsional)</label><input type="file" id="reg-foto" accept="image/*" style="padding:8px; border: 1px dashed #cbd5e1;" /></div>
-          <div class="modal-form-group"><label>Riwayat Penyakit / Alergi (Opsional)</label><textarea id="reg-riwayat-penyakit" rows="2" placeholder="Contoh: Asma..."></textarea></div>
+          <div class="modal-form-group">
+            <label>Unggah Foto Profil (Opsional)</label>
+            <input type="file" id="reg-foto" accept="image/*" style="padding:8px; border: 1px dashed #cbd5e1;" />
+          </div>
+          <div class="modal-form-group">
+            <label>Riwayat Penyakit / Alergi (Opsional)</label>
+            <textarea id="reg-riwayat-penyakit" rows="2" placeholder="Contoh: Asma..."></textarea>
+          </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>No. WA Pribadi (Opsional)</label><input type="text" id="reg-wa-pribadi" placeholder="08..." /></div>
-            <div class="modal-form-group"><label>No. WA Ortu (Opsional)</label><input type="text" id="reg-wa-ortu" placeholder="08..." /></div>
+            <div class="modal-form-group">
+              <label>No. WA Pribadi (Opsional)</label>
+              <input type="text" id="reg-wa-pribadi" placeholder="08..." />
+            </div>
+            <div class="modal-form-group">
+              <label>No. WA Ortu (Opsional)</label>
+              <input type="text" id="reg-wa-ortu" placeholder="08..." />
+            </div>
           </div>
           <div class="modal-grid-row" style="background:var(--canvas); padding:12px; border-radius:10px; margin-top:6px; border: 1px solid #e2e8f0;">
-            <div class="modal-form-group"><label>Email Login *</label><input type="email" id="reg-email" placeholder="nama@email.com" required /></div>
-            <div class="modal-form-group"><label>Kata Sandi *</label><input type="password" id="reg-password" placeholder="Minimal 6 karakter" minlength="6" required /></div>
+            <div class="modal-form-group">
+              <label>Email Login *</label>
+              <input type="email" id="reg-email" placeholder="nama@email.com" required />
+            </div>
+            <div class="modal-form-group">
+              <label>Kata Sandi *</label>
+              <input type="password" id="reg-password" placeholder="Minimal 6 karakter" minlength="6" required />
+            </div>
           </div>
         </div>
         <div class="app-modal-footer">
@@ -476,42 +948,80 @@
       <form onsubmit="window.handleUpdateProfileSubmit(event)" class="modal-form-wrapper">
         <div class="app-modal-body">
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>Nama Lengkap *</label><input type="text" id="prof-nama-lengkap" style="text-transform: uppercase;" required /></div>
-            <div class="modal-form-group"><label>Nama Panggilan *</label><input type="text" id="prof-nama-panggilan" required /></div>
+            <div class="modal-form-group">
+              <label>Nama Lengkap *</label>
+              <input type="text" id="prof-nama-lengkap" style="text-transform: uppercase;" required />
+            </div>
+            <div class="modal-form-group">
+              <label>Nama Panggilan *</label>
+              <input type="text" id="prof-nama-panggilan" required />
+            </div>
           </div>
           <div class="modal-grid-row">
             <div class="modal-form-group">
               <label>Jenis Kelamin *</label>
               <select id="prof-jenis-kelamin" required>
-                <option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option>
+                <option value="">Pilih</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>Tanggal Lahir *</label><input type="date" id="prof-tanggal-lahir" required /></div>
+            <div class="modal-form-group">
+              <label>Tanggal Lahir *</label>
+              <input type="date" id="prof-tanggal-lahir" required />
+            </div>
           </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>Kelas *</label><input type="text" id="prof-kelas" required /></div>
-            <div class="modal-form-group"><label>Tahun Bergabung *</label><input type="number" id="prof-tahun-bergabung" required /></div>
+            <div class="modal-form-group">
+              <label>Kelas *</label>
+              <input type="text" id="prof-kelas" required />
+            </div>
+            <div class="modal-form-group">
+              <label>Tahun Bergabung *</label>
+              <input type="number" id="prof-tahun-bergabung" required />
+            </div>
           </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>NISN</label><input type="text" id="prof-nisn" /></div>
+            <div class="modal-form-group">
+              <label>NISN</label>
+              <input type="text" id="prof-nisn" />
+            </div>
             <div class="modal-form-group">
               <label>Golongan Darah</label>
               <select id="prof-golongan-darah">
-                <option value="">Lewati</option><option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
+                <option value="">Lewati</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="AB">AB</option>
+                <option value="O">O</option>
               </select>
             </div>
           </div>
           <div class="modal-form-group">
             <label>Rhesus Darah</label>
             <select id="prof-rhesus-darah">
-              <option value="">Lewati</option><option value="Positif">Positif (+)</option><option value="Negatif">Negatif (-)</option>
+              <option value="">Lewati</option>
+              <option value="Positif">Positif (+)</option>
+              <option value="Negatif">Negatif (-)</option>
             </select>
           </div>
-          <div class="modal-form-group"><label>Riwayat Penyakit / Alergi</label><textarea id="prof-riwayat-penyakit" rows="2"></textarea></div>
-          <div class="modal-form-group"><label>Ganti Foto Profil</label><input type="file" id="prof-foto" accept="image/*" style="padding:8px; border: 1px dashed #cbd5e1;" /></div>
+          <div class="modal-form-group">
+            <label>Riwayat Penyakit / Alergi</label>
+            <textarea id="prof-riwayat-penyakit" rows="2"></textarea>
+          </div>
+          <div class="modal-form-group">
+            <label>Ganti Foto Profil</label>
+            <input type="file" id="prof-foto" accept="image/*" style="padding:8px; border: 1px dashed #cbd5e1;" />
+          </div>
           <div class="modal-grid-row">
-            <div class="modal-form-group"><label>No. WA Pribadi</label><input type="text" id="prof-wa-pribadi" /></div>
-            <div class="modal-form-group"><label>No. WA Orang Tua</label><input type="text" id="prof-wa-ortu" /></div>
+            <div class="modal-form-group">
+              <label>No. WA Pribadi</label>
+              <input type="text" id="prof-wa-pribadi" />
+            </div>
+            <div class="modal-form-group">
+              <label>No. WA Orang Tua</label>
+              <input type="text" id="prof-wa-ortu" />
+            </div>
           </div>
           <div style="background:#fef3c7; border: 1px solid #fde68a; padding: 12px; border-radius: 10px; margin-top: 6px;">
             <div class="modal-form-group">
@@ -528,11 +1038,20 @@
     </div>
   </div>
 
-  <script src="JS/supabase.js"></script>
-  <script src="JS/app.js"></script>
+  <!-- ==========================================================================
+       6. SKRIP CONTROLLER & INITIALIZATION
+       ========================================================================== -->
+  <!-- [PERBAIKAN] Path diubah menjadi huruf kecil (js/...) agar kompatibel dengan Vercel Linux -->
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => { 
-      if (window.lucide) { lucide.createIcons(); } 
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inisialisasi ikon Lucide bawaan
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+
+      // Tutup dropdown profil jika mengklik di luar area avatar
       document.addEventListener('click', (e) => {
         const wrap = document.querySelector('.profile-wrapper');
         const drop = document.getElementById('mobile-profile-dropdown');
