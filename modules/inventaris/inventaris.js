@@ -1,12 +1,14 @@
 /**
  * ==============================================================================
- * CONTROLLER MODUL INVENTARIS & UKS - PMR SPADAN
- * Diperbarui:
- * - Header modul mandiri ditiadakan karena terintegrasi penuh ke Utility Viewport
- * - Penyesuaian pengecekan sesi login dan hak akses tanpa elemen header lokal
+ * [CONTROLLER] MODUL INVENTARIS BARANG & UKS - PMR SPADAN
+ * ==============================================================================
+ * Deskripsi:
+ * Mengelola pendataan logistik obat, inventaris alat medis, profil kondisi
+ * bangunan UKS, serta usulan pengadaan logistik terpadu dengan Supabase.
  * ==============================================================================
  */
 
+// [STATE] Status Data & Sesi
 var currentUser = null;
 var currentUserProfile = null;
 var inventarisData = [];
@@ -14,10 +16,28 @@ var usulanData = [];
 var profilRuangData = null;
 var activeUsulanFilter = "SEMUA";
 var isSubmitting = false;
+var isPrivilegedUser = false; // Hak akses penuh: Anggota Aktif, Pengurus, Admin
 
-// Status wewenang penuh (Anggota Aktif, Pengurus, Admin selain Alumni & Non-Aktif)
-var isPrivilegedUser = false;
+/**
+ * [HELPER] Resolver Klien Basis Data Tangguh
+ * Memastikan modul mendapatkan koneksi Supabase yang valid baik saat
+ * dimuat di dalam iframe maupun secara mandiri.
+ */
+function getInvDbClient() {
+  if (window.db) return window.db;
+  if (window.parent && window.parent.db) return window.parent.db;
+  if (typeof supabase !== "undefined") {
+    const url = window.SUPABASE_URL || (window.parent && window.parent.SUPABASE_URL) || "https://ndahxwqshyukqpnjkniw.supabase.co";
+    const key = window.SUPABASE_ANON_KEY || (window.parent && window.parent.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kYWh4d3FzaHl1a3Fwbmprbml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNjEzODUsImV4cCI6MjEwNDczNzM4NX0.lkxXa2M16275nkjNKnWN3KE5NT7J1BVoyEO7xVAxJt8";
+    window.db = supabase.createClient(url, key);
+    return window.db;
+  }
+  return null;
+}
 
+/**
+ * [INISIALISASI] Memuat seluruh data saat DOM selesai di-render
+ */
 document.addEventListener("DOMContentLoaded", async () => {
   await initInventarisSession();
   renderTableHeader();
@@ -29,9 +49,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.lucide) lucide.createIcons();
 });
 
-/* --------------------------------------------------------------------------
-   1. OTORISASI & SESI
--------------------------------------------------------------------------- */
+/* ==============================================================================
+   1. OTORISASI & SESI PENGGUNA
+   ============================================================================== */
 async function initInventarisSession() {
   const guestBanner = document.getElementById("guest-alert-banner");
   const guestAlertText = document.getElementById("guest-alert-text");
@@ -41,15 +61,25 @@ async function initInventarisSession() {
   const filterKepemilikan = document.getElementById("inv-filter-kepemilikan");
   const filterKondisi = document.getElementById("inv-filter-kondisi");
 
-  // Periksa profil dari jendela induk portal (jika di-embed di iframe)
+  const dbClient = getInvDbClient();
+
+  // Sinkronisasi profil dari jendela induk portal (jika berada di iframe)
   if (window.parent && window.parent.activeUserProfile) {
     currentUserProfile = window.parent.activeUserProfile;
     currentUser = { id: currentUserProfile.id, email: currentUserProfile.email };
   } else if (typeof getCurrentUser === "function") {
     currentUser = await getCurrentUser();
     currentUserProfile = await getCurrentUserProfile();
+  } else if (dbClient?.auth) {
+    const { data: { user } } = await dbClient.auth.getUser();
+    if (user) {
+      currentUser = user;
+      const { data: prof } = await dbClient.from("users_profile").select("*").eq("id", user.id).single();
+      currentUserProfile = prof;
+    }
   }
 
+  // Tangani Mode Tamu (Belum Login)
   if (!currentUser || !currentUserProfile) {
     currentUserProfile = { jabatan: "guest", nama_lengkap: "Tamu" };
     isPrivilegedUser = false;
@@ -70,25 +100,18 @@ async function initInventarisSession() {
   const isNonAktif = role === "non-aktif" || ket.includes("non-aktif");
   const isRestricted = isAlumni || isNonAktif;
 
-  // Privileged User: Hanya Anggota Aktif, Pengurus, dan Admin (Bukan Alumni & Bukan Non-Aktif)
+  // Privileged User: Hanya Anggota Aktif, Pengurus, dan Admin
   isPrivilegedUser = !isRestricted;
-
   const isAdmin = role === "admin" || ket.includes("pembina");
   const isPengurus = role === "pengurus";
 
   if (btnTambah) btnTambah.style.display = (isAdmin || isPengurus) ? "inline-flex" : "none";
   if (btnEditBangunan) btnEditBangunan.style.display = (isAdmin || isPengurus) ? "inline-flex" : "none";
-
-  // Tab Usulan: HANYA muncul untuk Anggota Aktif, Pengurus, dan Admin
-  if (subtabUsulan) {
-    subtabUsulan.style.display = isPrivilegedUser ? "inline-flex" : "none";
-  }
-
-  // Sembunyikan dropdown filter lanjutan untuk peran terbatas
+  if (subtabUsulan) subtabUsulan.style.display = isPrivilegedUser ? "inline-flex" : "none";
   if (filterKepemilikan) filterKepemilikan.style.display = isPrivilegedUser ? "inline-block" : "none";
   if (filterKondisi) filterKondisi.style.display = isPrivilegedUser ? "inline-block" : "none";
 
-  // Tampilkan banner status jika pengguna adalah Alumni atau Non-Aktif
+  // Tampilkan keterangan jika pengguna adalah Alumni atau Non-Aktif
   if (guestBanner) {
     if (isAlumni) {
       guestBanner.style.display = "flex";
@@ -102,8 +125,10 @@ async function initInventarisSession() {
   }
 }
 
+/**
+ * [NAVIGASI] Berpindah Tab Sub-Modul
+ */
 window.switchInvTab = function(tabName) {
-  // Cegah pembukaan tab usulan bagi yang tidak berhak
   if (tabName === "usulan" && !isPrivilegedUser) {
     alert("Akses Ditolak: Fitur usulan pengadaan hanya tersedia bagi Anggota Aktif, Pengurus, dan Pembina.");
     return;
@@ -123,15 +148,14 @@ window.switchInvTab = function(tabName) {
   if (window.lucide) lucide.createIcons();
 };
 
-/* --------------------------------------------------------------------------
-   2. TAB 1: INVENTARIS LOGISTIK (TAMPILAN ADAPTIF BERDASARKAN PERAN)
--------------------------------------------------------------------------- */
+/* ==============================================================================
+   2. TAB 1: INVENTARIS LOGISTIK & OBAT
+   ============================================================================== */
 function renderTableHeader() {
   const thead = document.getElementById("thead-inventaris");
   if (!thead) return;
 
   if (isPrivilegedUser) {
-    // Tampilan Penuh untuk Anggota Aktif, Pengurus, dan Admin
     thead.innerHTML = `
       <tr>
         <th style="width: 50px;">Foto</th>
@@ -144,7 +168,6 @@ function renderTableHeader() {
       </tr>
     `;
   } else {
-    // Tampilan Terbatas untuk Guest, Alumni, dan Non-Aktif
     thead.innerHTML = `
       <tr>
         <th style="width: 50px;">Foto</th>
@@ -157,8 +180,15 @@ function renderTableHeader() {
 
 async function loadInventarisData() {
   const tbody = document.getElementById("tbody-inventaris");
+  const dbClient = getInvDbClient();
+
+  if (!dbClient) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="loading-state" style="color:#b91c1c;">Koneksi database tidak tersedia.</td></tr>`;
+    return;
+  }
+
   try {
-    const { data, error } = await window.db
+    const { data, error } = await dbClient
       .from("inventaris_barang")
       .select("*")
       .order("nama_barang", { ascending: true });
@@ -190,7 +220,7 @@ function renderInventarisTable(items) {
       ? `<img src="${item.foto_barang_url}" class="foto-thumbnail-click" title="Klik untuk melihat foto & detail" onclick="window.bukaDetailBarangModal('${item.id}')" style="width:38px; height:38px; border-radius:6px; object-fit:cover;" />`
       : `<div class="foto-thumbnail-click" title="Klik untuk melihat detail" onclick="window.bukaDetailBarangModal('${item.id}')" style="width:38px; height:38px; border-radius:6px; background:#e2e8f0; display:flex; align-items:center; justify-content:center; font-size:10px; color:#64748b;"><i data-lucide="image" style="width:16px; height:16px;"></i></div>`;
 
-    // 1. TAMPILAN TERBATAS (GUEST / ALUMNI / NON-AKTIF): Hanya Foto, Nama, dan Jumlah
+    // 1. Tampilan Khusus Pengguna Terbatas (Guest, Alumni, Non-Aktif)
     if (!isPrivilegedUser) {
       return `
         <tr>
@@ -204,7 +234,7 @@ function renderInventarisTable(items) {
       `;
     }
 
-    // 2. TAMPILAN LENGKAP (ANGGOTA AKTIF, PENGURUS, ADMIN)
+    // 2. Tampilan Lengkap (Anggota Aktif, Pengurus, Admin)
     let badgeClass = "badge-uks";
     let badgeText = "ASET UKS";
     if (item.kepemilikan === "PMR") {
@@ -243,7 +273,6 @@ function renderInventarisTable(items) {
   if (window.lucide) lucide.createIcons();
 }
 
-/* MODAL PREVIEW FOTO & DETAIL KHUSUS */
 window.bukaDetailBarangModal = function(id) {
   const item = inventarisData.find(b => b.id === id);
   if (!item) return;
@@ -254,13 +283,8 @@ window.bukaDetailBarangModal = function(id) {
 
   if (titleEl) titleEl.textContent = item.nama_barang;
   if (imgEl) {
-    if (item.foto_barang_url) {
-      imgEl.src = item.foto_barang_url;
-      imgEl.style.display = "block";
-    } else {
-      imgEl.src = "https://placehold.co/400x250/e2e8f0/64748b?text=Tidak+Ada+Foto";
-      imgEl.style.display = "block";
-    }
+    imgEl.src = item.foto_barang_url || "https://placehold.co/400x250/e2e8f0/64748b?text=Tidak+Ada+Foto";
+    imgEl.style.display = "block";
   }
 
   if (!isPrivilegedUser) {
@@ -342,6 +366,7 @@ window.togglePemilikPribadiField = function() {
 window.cekDuplikasiBarang = async function() {
   const barangId = document.getElementById("form-barang-id")?.value;
   if (barangId) return;
+
   const nama = document.getElementById("form-nama-barang")?.value.trim();
   const kepemilikan = document.getElementById("form-kepemilikan")?.value;
   if (!nama) return;
@@ -349,6 +374,7 @@ window.cekDuplikasiBarang = async function() {
   const match = inventarisData.find(item => 
     item.nama_barang.toLowerCase() === nama.toLowerCase() && item.kepemilikan === kepemilikan
   );
+
   if (match) {
     const tambahStok = confirm(`Barang "${match.nama_barang}" (${match.kepemilikan}) sudah terdaftar dengan stok ${match.jumlah} ${match.satuan}.\n\nApakah Anda ingin memperbarui stok barang yang sudah ada ini?`);
     if (tambahStok) {
@@ -374,13 +400,15 @@ window.editBarang = function(id) {
   document.getElementById("form-kondisi").value = item.kondisi;
   document.getElementById("form-kedaluwarsa").value = item.tanggal_kedaluwarsa || "";
   document.getElementById("form-catatan").value = item.keterangan_catatan || "";
-
   document.getElementById("modal-barang")?.classList.add("active");
 };
 
 window.handleBarangSubmit = async function(event) {
   event.preventDefault();
   if (isSubmitting) return;
+
+  const dbClient = getInvDbClient();
+  if (!dbClient) return alert("Koneksi database tidak tersedia.");
 
   const btn = document.getElementById("btn-save-barang");
   const barangId = document.getElementById("form-barang-id").value;
@@ -405,9 +433,9 @@ window.handleBarangSubmit = async function(event) {
     if (fotoInput.files && fotoInput.files[0]) {
       const file = fotoInput.files[0];
       const fileName = `item_${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await window.db.storage.from("inventaris_aset").upload(fileName, file);
+      const { error: uploadErr } = await dbClient.storage.from("inventaris_aset").upload(fileName, file);
       if (!uploadErr) {
-        const { data: publicData } = window.db.storage.from("inventaris_aset").getPublicUrl(fileName);
+        const { data: publicData } = dbClient.storage.from("inventaris_aset").getPublicUrl(fileName);
         fotoUrl = publicData.publicUrl;
       }
     }
@@ -430,33 +458,36 @@ window.handleBarangSubmit = async function(event) {
 
     if (barangId) {
       const oldItem = inventarisData.find(b => b.id === barangId);
-      await window.db.from("inventaris_log_aktivitas").insert({
-        barang_id: barangId,
-        nama_barang: nama,
-        kepemilikan: kepemilikan,
-        aksi: "UPDATE_STOK",
-        rincian_perubahan: { sebelum: oldItem, sesudah: payload },
-        petugas_id: currentUser.id,
-        nama_petugas: currentUserProfile.nama_lengkap,
-        jabatan_petugas: currentUserProfile.jabatan
-      });
-
-      const { error } = await window.db.from("inventaris_barang").update(payload).eq("id", barangId);
+      if (currentUser) {
+        await dbClient.from("inventaris_log_aktivitas").insert({
+          barang_id: barangId,
+          nama_barang: nama,
+          kepemilikan: kepemilikan,
+          aksi: "UPDATE_STOK",
+          rincian_perubahan: { sebelum: oldItem, sesudah: payload },
+          petugas_id: currentUser.id,
+          nama_petugas: currentUserProfile.nama_lengkap,
+          jabatan_petugas: currentUserProfile.jabatan
+        });
+      }
+      const { error } = await dbClient.from("inventaris_barang").update(payload).eq("id", barangId);
       if (error) throw error;
     } else {
-      const { data: newEntry, error } = await window.db.from("inventaris_barang").insert(payload).select().single();
+      const { data: newEntry, error } = await dbClient.from("inventaris_barang").insert(payload).select().single();
       if (error) throw error;
 
-      await window.db.from("inventaris_log_aktivitas").insert({
-        barang_id: newEntry.id,
-        nama_barang: nama,
-        kepemilikan: kepemilikan,
-        aksi: "TAMBAH",
-        rincian_perubahan: { data_baru: payload },
-        petugas_id: currentUser.id,
-        nama_petugas: currentUserProfile.nama_lengkap,
-        jabatan_petugas: currentUserProfile.jabatan
-      });
+      if (currentUser && newEntry) {
+        await dbClient.from("inventaris_log_aktivitas").insert({
+          barang_id: newEntry.id,
+          nama_barang: nama,
+          kepemilikan: kepemilikan,
+          aksi: "TAMBAH",
+          rincian_perubahan: { data_baru: payload },
+          petugas_id: currentUser.id,
+          nama_petugas: currentUserProfile.nama_lengkap,
+          jabatan_petugas: currentUserProfile.jabatan
+        });
+      }
     }
 
     alert("Data barang berhasil disimpan!");
@@ -475,23 +506,29 @@ window.hapusBarang = async function(id) {
   const item = inventarisData.find(b => b.id === id);
   if (!item) return;
 
+  const dbClient = getInvDbClient();
+  if (!dbClient) return alert("Koneksi database tidak tersedia.");
+
   const alasan = prompt(`Hapus barang "${item.nama_barang}"?\nMasukkan alasan penghapusan:`);
   if (!alasan) return;
 
   try {
-    await window.db.from("inventaris_log_aktivitas").insert({
-      barang_id: item.id,
-      nama_barang: item.nama_barang,
-      kepemilikan: item.kepemilikan,
-      aksi: "HAPUS",
-      rincian_perubahan: { barang: item, alasan: alasan },
-      petugas_id: currentUser.id,
-      nama_petugas: currentUserProfile.nama_lengkap,
-      jabatan_petugas: currentUserProfile.jabatan
-    });
+    if (currentUser) {
+      await dbClient.from("inventaris_log_aktivitas").insert({
+        barang_id: item.id,
+        nama_barang: item.nama_barang,
+        kepemilikan: item.kepemilikan,
+        aksi: "HAPUS",
+        rincian_perubahan: { barang: item, alasan: alasan },
+        petugas_id: currentUser.id,
+        nama_petugas: currentUserProfile.nama_lengkap,
+        jabatan_petugas: currentUserProfile.jabatan
+      });
+    }
 
-    const { error } = await window.db.from("inventaris_barang").delete().eq("id", id);
+    const { error } = await dbClient.from("inventaris_barang").delete().eq("id", id);
     if (error) throw error;
+
     alert("Barang berhasil dihapus dari inventaris.");
     await loadInventarisData();
   } catch (err) {
@@ -499,25 +536,28 @@ window.hapusBarang = async function(id) {
   }
 };
 
-/* --------------------------------------------------------------------------
+/* ==============================================================================
    3. TAB 2: PROFIL BANGUNAN & FASILITAS RUANG UKS
--------------------------------------------------------------------------- */
+   ============================================================================== */
 async function loadProfilRuangUks() {
   const specsEl = document.getElementById("building-specs");
   const compsEl = document.getElementById("building-condition-components");
   const sanCardsEl = document.getElementById("building-sanitation-cards");
   const photoContainer = document.getElementById("room-photo-container");
   const notesEl = document.getElementById("room-notes");
+  const dbClient = getInvDbClient();
+
+  if (!dbClient) return;
 
   try {
-    const { data, error } = await window.db.from("profil_ruang_uks").select("*").limit(1).maybeSingle();
+    const { data, error } = await dbClient.from("profil_ruang_uks").select("*").limit(1).maybeSingle();
     if (error) throw error;
     if (!data) return;
 
     profilRuangData = data;
 
     if (photoContainer) {
-      photoContainer.innerHTML = data.foto_ruangan_url
+      photoContainer.innerHTML = data.foto_ruangan_url 
         ? `<img src="${data.foto_ruangan_url}?v=${Date.now()}" alt="Foto Ruangan UKS" />`
         : `<div class="no-photo"><i data-lucide="image"></i><span>Belum ada foto ruangan</span></div>`;
     }
@@ -530,8 +570,8 @@ async function loadProfilRuangUks() {
       specsEl.innerHTML = `
         <div class="spec-row"><span class="label">Nama Ruangan</span><span class="val">${data.nama_ruangan}</span></div>
         <div class="spec-row"><span class="label">Lokasi Lantai</span><span class="val">${data.lokasi_lantai}</span></div>
-        <div class="spec-row"><span class="label">Panjang × Lebar</span><span class="val">${data.panjang_meter} m × ${data.lebar_meter} m</span></div>
-        <div class="spec-row"><span class="label">Total Luas Ruangan</span><span class="val" style="color:var(--maroon);">${data.luas_total_m2} m²</span></div>
+        <div class="spec-row"><span class="label">Panjang &times; Lebar</span><span class="val">${data.panjang_meter} m &times; ${data.lebar_meter} m</span></div>
+        <div class="spec-row"><span class="label">Total Luas Ruangan</span><span class="val" style="color:var(--maroon);">${data.luas_total_m2} m&sup2;</span></div>
         <div class="spec-row"><span class="label">Kapasitas Tempat Tidur</span><span class="val">${data.kapasitas_tempat_tidur} Unit</span></div>
         <div class="spec-row"><span class="label">Pemisah Gender (Tirai)</span><span class="val">${data.ada_pemisah_gender ? 'Tersedia' : 'Tidak Ada'}</span></div>
       `;
@@ -591,7 +631,6 @@ window.openEditBangunanModal = function() {
   document.getElementById("edit-room-vent").value = profilRuangData.ventilasi_udara || "";
   document.getElementById("edit-room-light").value = profilRuangData.pencahayaan || "";
   document.getElementById("edit-room-notes").value = profilRuangData.catatan_pemeliharaan || "";
-
   document.getElementById("modal-edit-bangunan")?.classList.add("active");
 };
 
@@ -601,6 +640,9 @@ window.closeEditBangunanModal = function() {
 
 window.handleUpdateBangunanSubmit = async function(event) {
   event.preventDefault();
+  const dbClient = getInvDbClient();
+  if (!dbClient) return alert("Koneksi database tidak tersedia.");
+
   const btn = document.getElementById("btn-save-bangunan");
   const fileInput = document.getElementById("edit-room-photo-file");
 
@@ -612,9 +654,9 @@ window.handleUpdateBangunanSubmit = async function(event) {
     if (fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
       const fileName = `ruang_uks_${Date.now()}.jpg`;
-      const { error: uploadErr } = await window.db.storage.from("inventaris_aset").upload(fileName, file);
+      const { error: uploadErr } = await dbClient.storage.from("inventaris_aset").upload(fileName, file);
       if (!uploadErr) {
-        const { data: publicData } = window.db.storage.from("inventaris_aset").getPublicUrl(fileName);
+        const { data: publicData } = dbClient.storage.from("inventaris_aset").getPublicUrl(fileName);
         fotoUrl = publicData.publicUrl;
       }
     }
@@ -639,7 +681,7 @@ window.handleUpdateBangunanSubmit = async function(event) {
       updated_at: new Date().toISOString()
     };
 
-    const { error } = await window.db.from("profil_ruang_uks").update(payload).eq("id", profilRuangData.id);
+    const { error } = await dbClient.from("profil_ruang_uks").update(payload).eq("id", profilRuangData.id);
     if (error) throw error;
 
     alert("Profil fasilitas ruang UKS berhasil diperbarui!");
@@ -653,14 +695,18 @@ window.handleUpdateBangunanSubmit = async function(event) {
   }
 };
 
-/* --------------------------------------------------------------------------
+/* ==============================================================================
    4. TAB 3: USULAN PENGADAAN
--------------------------------------------------------------------------- */
+   ============================================================================== */
 async function loadUsulanData() {
   if (!isPrivilegedUser) return;
   const tbody = document.getElementById("tbody-usulan");
+  const dbClient = getInvDbClient();
+
+  if (!dbClient) return;
+
   try {
-    const { data, error } = await window.db
+    const { data, error } = await dbClient
       .from("inventaris_usulan")
       .select("*")
       .order("created_at", { ascending: false });
@@ -710,9 +756,9 @@ function renderUsulanTable() {
 
     const tanggapanInfo = u.catatan_pembina 
       ? `<div style="margin-top:4px; font-size:11px; color:#1e293b; background:#f8fafc; padding:4px 6px; border-radius:6px; border-left:3px solid var(--maroon);">
-           <strong>Catatan:</strong> ${u.catatan_pembina}
-           <div style="font-size:9.5px; color:#64748b;">Oleh: ${u.diverifikasi_oleh || 'Pembina'}</div>
-         </div>`
+          <strong>Catatan:</strong> ${u.catatan_pembina}
+          <div style="font-size:9.5px; color:#64748b;">Oleh: ${u.diverifikasi_oleh || 'Pembina'}</div>
+        </div>`
       : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><em>Belum ada catatan tanggapan.</em></div>`;
 
     const actionBtn = isAdminOrPembina ? `
@@ -784,6 +830,9 @@ window.closeUsulanModal = function() {
 
 window.handleUsulanSubmit = async function(event) {
   event.preventDefault();
+  const dbClient = getInvDbClient();
+  if (!dbClient || !currentUser) return alert("Koneksi database atau sesi akun tidak tersedia.");
+
   const btn = document.getElementById("btn-save-usulan");
   const nama = document.getElementById("usulan-nama").value.trim();
   const jumlah = parseInt(document.getElementById("usulan-jumlah").value, 10);
@@ -798,14 +847,14 @@ window.handleUsulanSubmit = async function(event) {
     if (fotoInput.files && fotoInput.files[0]) {
       const file = fotoInput.files[0];
       const fileName = `usulan_${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await window.db.storage.from("inventaris_aset").upload(fileName, file);
+      const { error: uploadErr } = await dbClient.storage.from("inventaris_aset").upload(fileName, file);
       if (!uploadErr) {
-        const { data: publicData } = window.db.storage.from("inventaris_aset").getPublicUrl(fileName);
+        const { data: publicData } = dbClient.storage.from("inventaris_aset").getPublicUrl(fileName);
         fotoUrl = publicData.publicUrl;
       }
     }
 
-    const { error } = await window.db.from("inventaris_usulan").insert({
+    const { error } = await dbClient.from("inventaris_usulan").insert({
       nama_barang: nama,
       jumlah_diusulkan: jumlah,
       alasan_kebutuhan: alasan,
@@ -827,9 +876,9 @@ window.handleUsulanSubmit = async function(event) {
   }
 };
 
-/* --------------------------------------------------------------------------
+/* ==============================================================================
    5. MODAL TANGGAPAN KHUSUS ADMIN / PEMBINA
--------------------------------------------------------------------------- */
+   ============================================================================== */
 window.openTanggapiModal = function(usulanId) {
   const u = usulanData.find(item => item.id === usulanId);
   if (!u) return;
@@ -839,7 +888,6 @@ window.openTanggapiModal = function(usulanId) {
   document.getElementById("tanggapi-alasan-barang").textContent = `Alasan: "${u.alasan_kebutuhan}"`;
   document.getElementById("tanggapi-status").value = u.status || "Disetujui";
   document.getElementById("tanggapi-catatan").value = u.catatan_pembina || "";
-
   document.getElementById("modal-tanggapi-usulan")?.classList.add("active");
 };
 
@@ -849,6 +897,9 @@ window.closeTanggapiModal = function() {
 
 window.handleTanggapiSubmit = async function(event) {
   event.preventDefault();
+  const dbClient = getInvDbClient();
+  if (!dbClient) return alert("Koneksi database tidak tersedia.");
+
   const btn = document.getElementById("btn-submit-tanggapan");
   const usulanId = document.getElementById("tanggapi-usulan-id").value;
   const status = document.getElementById("tanggapi-status").value;
@@ -858,7 +909,7 @@ window.handleTanggapiSubmit = async function(event) {
   btn.textContent = "Menyimpan Keputusan...";
 
   try {
-    const { error } = await window.db.from("inventaris_usulan").update({
+    const { error } = await dbClient.from("inventaris_usulan").update({
       status: status,
       catatan_pembina: catatan,
       diverifikasi_oleh: currentUserProfile?.nama_lengkap || "Pembina PMR",
