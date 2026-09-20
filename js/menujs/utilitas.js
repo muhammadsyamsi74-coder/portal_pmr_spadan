@@ -1,17 +1,12 @@
 /**
  * ==============================================================================
- * CONTROLLER MODUL UTILITY - PORTAL PMR SPADAN
- * Lengkap:
- * - 5 Modul Utama dengan Ikon Gambar Resmi Supabase (Squircle Android Style)
- * - Pemuatan Latar Belakang (Preload) & Fallback ke Lucide Icon jika gagal
- * - Mode Penampil Eksklusif Dalam Aplikasi (In-App Viewport)
+ * [CONTROLLER] MODUL UTILITY & ALAT OPERASIONAL - PMR SPADAN
  * ==============================================================================
  */
 
 window.ACTIVE_UTILITY_KEY = null;
 window.ACTIVE_UTILITY_URL = null;
 
-// Konfigurasi Ikon Gambar 5 Tools Resmi Supabase
 window.CORE_TOOL_ICONS = {
   inventaris: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20inventaris%20barang.png",
   kalender: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/kalender%20dan%20agenda.png",
@@ -20,11 +15,11 @@ window.CORE_TOOL_ICONS = {
   pelaporan: "https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/logo%20laporan%20kegaitan.png"
 };
 
-// Peta URL & Konfigurasi 5 Modul Utama
+// [ROUTING] Konfigurasi Nama File sesuai Penyesuaian Baru Anda
 window.CORE_UTILITY_MODULES = {
   inventaris: {
     title: "Modul Inventaris & UKS",
-    url: "modules/inventaris/index.html",
+    url: "modules/inventaris/inventaris.html",
     type: "iframe",
     akses: "guest"
   },
@@ -52,7 +47,7 @@ window.CORE_UTILITY_MODULES = {
   },
   pelaporan: {
     title: "Modul Pelaporan Administrasi Resmi",
-    url: "modules/pelaporan/pelaporan.html",
+    url: "modules/pelaporan/laporan.html",
     type: "iframe",
     akses: "anggota"
   }
@@ -60,9 +55,6 @@ window.CORE_UTILITY_MODULES = {
 
 window.DYNAMIC_UTILITY_LINKS = [];
 
-/* ==============================================================================
-   1. INISIALISASI MENU UTILITY & PEMUATAN IKON LATAR BELAKANG
-   ============================================================================== */
 window.renderUtilitasGrid = async function() {
   const btnTambah = document.getElementById("btn-tambah-link-app");
   const userRole = (window.activeUserProfile?.jabatan || "").toLowerCase();
@@ -73,17 +65,12 @@ window.renderUtilitasGrid = async function() {
     btnTambah.style.display = isAdmin ? "inline-flex" : "none";
   }
 
-  // Pastikan kondisi awal kembali menampilkan daftar alat
   window.tutupModulUtility();
-
-  // Memuat 5 Ikon PNG Baru di latar belakang secara halus
   window.loadCoreToolIconsSilent();
-
   await window.loadDynamicUtilityLinks();
   if (window.lucide) lucide.createIcons();
 };
 
-/* FUNGSI PRELOAD IKON RESMI DENGAN FALLBACK AMAN */
 window.loadCoreToolIconsSilent = function() {
   Object.keys(window.CORE_TOOL_ICONS).forEach((key) => {
     const iconUrl = window.CORE_TOOL_ICONS[key];
@@ -93,21 +80,13 @@ window.loadCoreToolIconsSilent = function() {
     const img = new Image();
     img.src = iconUrl;
     img.onload = () => {
-      // Jika berhasil dimuat di latar belakang, gantikan ikon SVG Lucide
       wrapper.innerHTML = `<img src="${iconUrl}" alt="Ikon ${key}" class="tool-squircle-img" />`;
       wrapper.style.backgroundColor = "transparent";
       wrapper.style.border = "none";
     };
-    img.onerror = () => {
-      // Jika gagal/offline, biarkan fallback ikon Lucide tetap aktif
-      console.warn(`Ikon ${key} gagal dimuat dari Supabase, mempertahankan ikon bawaan.`);
-    };
   });
 };
 
-/* ==============================================================================
-   2. MEMBUKA MODUL SECARA EKSKLUSIF (SEMBUNYIKAN SEMUA ALAT LAINNYA)
-   ============================================================================== */
 window.bukaModulUtility = async function(modulKey) {
   const headerCard = document.getElementById("utilitas-header-panel");
   const mainGrid = document.getElementById("utilitas-main-grid");
@@ -117,7 +96,6 @@ window.bukaModulUtility = async function(modulKey) {
 
   if (!viewer || !contentEl) return;
 
-  // Evaluasi Hak Akses Modul
   const target = window.CORE_UTILITY_MODULES[modulKey];
   if (!target) return;
 
@@ -138,15 +116,12 @@ window.bukaModulUtility = async function(modulKey) {
   window.ACTIVE_UTILITY_KEY = modulKey;
   window.ACTIVE_UTILITY_URL = target.url;
 
-  // 1. Sembunyikan Header dan Kisi Menu
   if (headerCard) headerCard.style.display = "none";
   if (mainGrid) mainGrid.style.display = "none";
 
-  // 2. Munculkan Penampil Modul
   if (titleEl) titleEl.textContent = target.title;
   viewer.style.display = "flex";
 
-  // Indikator Memuat
   contentEl.innerHTML = `
     <div class="inapp-loading">
       <i data-lucide="loader-2" class="spin-anim"></i>
@@ -155,11 +130,10 @@ window.bukaModulUtility = async function(modulKey) {
   `;
   if (window.lucide) lucide.createIcons();
 
-  // Mode 1: Modul Inline (Kalender & Pustaka Materi)
   if (target.type === "inline") {
     try {
       const res = await fetch(target.url);
-      if (!res.ok) throw new Error("Gagal mengambil template modul.");
+      if (!res.ok) throw new Error(`Berkas tidak ditemukan (${res.status} ${res.statusText})`);
       contentEl.innerHTML = await res.text();
 
       if (target.script) {
@@ -170,22 +144,21 @@ window.bukaModulUtility = async function(modulKey) {
       }
       if (window.lucide) lucide.createIcons();
     } catch (err) {
-      contentEl.innerHTML = `<div style="color:#b91c1c; font-size:12.5px; padding:30px; text-align:center;">Gagal memuat modul: ${err.message}</div>`;
+      contentEl.innerHTML = `
+        <div style="color:#b91c1c; font-size:12.5px; padding:30px; text-align:center;">
+          <b>Gagal memuat modul:</b> ${err.message}<br>
+          <small style="color:#64748b;">Pastikan file HTML ada di: ${target.url}</small>
+        </div>
+      `;
     }
-  } 
-  // Mode 2: Modul Mandiri (Inventaris, KTA, Pelaporan)
-  else {
+  } else {
     contentEl.innerHTML = `
       <iframe src="${target.url}" class="inapp-iframe" title="${target.title}"></iframe>
     `;
   }
-
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
-/* ==============================================================================
-   3. MENUTUP MODUL & MENGEMBALIKAN TAMPILAN SEMUA ALAT
-   ============================================================================== */
 window.tutupModulUtility = function() {
   const headerCard = document.getElementById("utilitas-header-panel");
   const mainGrid = document.getElementById("utilitas-main-grid");
@@ -220,17 +193,11 @@ window.loadUtilityScriptOnce = function(scriptSrc) {
     const script = document.createElement("script");
     script.src = scriptSrc;
     script.onload = () => resolve();
-    script.onerror = () => {
-      console.warn("Gagal memuat skrip modul:", scriptSrc);
-      resolve();
-    };
+    script.onerror = () => resolve();
     document.body.appendChild(script);
   });
 };
 
-/* ==============================================================================
-   4. TAUTAN EKSTERNAL DINAMIS DARI DATABASE SUPABASE
-   ============================================================================== */
 window.loadDynamicUtilityLinks = async function() {
   const grid = document.getElementById("utilitas-main-grid");
   if (!grid || !window.db) return;
@@ -243,7 +210,6 @@ window.loadDynamicUtilityLinks = async function() {
     const { data: extApps, error } = await window.db.from("utilitas_eksternal").select("*");
     if (error) throw error;
 
-    // Bersihkan elemen dinamis lama agar tidak bertumpuk
     document.querySelectorAll(".util-dynamic-item").forEach(el => el.remove());
 
     (extApps || []).forEach(app => {
@@ -263,7 +229,6 @@ window.loadDynamicUtilityLinks = async function() {
       `;
       grid.insertAdjacentHTML("beforeend", itemHtml);
     });
-
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.warn("Gagal memuat tautan dinamis:", err);
@@ -304,7 +269,6 @@ window.handleTambahLinkSubmit = async function(event) {
       const { data: publicUrlData } = window.db.storage.from("utilitas_ikon").getPublicUrl(fileName);
       fotoUrl = publicUrlData.publicUrl;
     }
-
     if (!fotoUrl) throw new Error("Ikon alat wajib diunggah.");
 
     const payload = {

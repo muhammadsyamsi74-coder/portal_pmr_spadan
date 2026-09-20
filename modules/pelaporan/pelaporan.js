@@ -1,23 +1,38 @@
 /**
  * ==============================================================================
- * ENGINE MODUL PELAPORAN ADMINISTRASI - PMR SPADAN
- * Diperbarui:
- * - Struktur Kolom Tabel Presensi: [No, Nama Lengkap, Jabatan / Kelas, Tanggal...]
- * - Filter Presensi Siswa: Khusus Anggota Aktif (Alumni, Non-Aktif, Pembina, & Pelatih dieksklusikan)
- * - Lembar Presensi Pelatih & Pembina dipisah pada lembar tersendiri
+ * [CONTROLLER] MODUL PELAPORAN ADMINISTRASI - PMR SPADAN
+ * ==============================================================================
+ * Deskripsi:
+ * Menggabungkan rekap presensi, dokumentasi foto, jurnal, dan laporan resmi
+ * ke dalam template kertas F4 untuk diekspor menjadi dokumen cetak.
  * ==============================================================================
  */
 
+// [STATE] Log Data Pelaporan
 var rawPresensi = [];
 var rawUsers = [];
 var kegiatanUnik = [];
 
+/**
+ * [HELPER] Resolver Klien Database
+ * Mengambil objek database dari scope global, window.parent (iframe),
+ * atau membuat koneksi mandiri sebagai cadangan.
+ */
 function getPelaporanDbClient() {
   if (window.db) return window.db;
   if (window.parent && window.parent.db) return window.parent.db;
+  if (typeof supabase !== "undefined") {
+    const url = window.SUPABASE_URL || (window.parent && window.parent.SUPABASE_URL) || "https://ndahxwqshyukqpnjkniw.supabase.co";
+    const key = window.SUPABASE_ANON_KEY || (window.parent && window.parent.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kYWh4d3FzaHl1a3Fwbmprbml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNjEzODUsImV4cCI6MjEwNDczNzM4NX0.lkxXa2M16275nkjNKnWN3KE5NT7J1BVoyEO7xVAxJt8";
+    window.db = supabase.createClient(url, key);
+    return window.db;
+  }
   return null;
 }
 
+/**
+ * [INISIALISASI] Memuat Data setelah DOM Siap
+ */
 document.addEventListener("DOMContentLoaded", async () => {
   const isAuthorized = await checkPelaporanAccess();
   if (!isAuthorized) return;
@@ -28,13 +43,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const elBulan = document.getElementById("lap-bulan");
   const elTahun = document.getElementById("lap-tahun");
-
   if (elBulan) elBulan.value = currMonth;
   if (elTahun) elTahun.value = currYear;
 
   if (window.lucide) lucide.createIcons();
 });
 
+/**
+ * [KONTROL] Validasi Hak Akses Modul
+ */
 async function checkPelaporanAccess() {
   try {
     let profile = null;
@@ -43,7 +60,7 @@ async function checkPelaporanAccess() {
     } else if (typeof getCurrentUserProfile === "function") {
       profile = await getCurrentUserProfile();
     }
-
+    
     if (!profile) {
       const dbClient = getPelaporanDbClient();
       if (dbClient?.auth) {
@@ -62,7 +79,6 @@ async function checkPelaporanAccess() {
 
     const role = (profile.jabatan || "").toLowerCase();
     const ket = (profile.keterangan_jabatan || "").toLowerCase();
-
     const isAlumni = ket.includes("alumni");
     const isNonAktif = ket.includes("non-aktif") || role === "non-aktif";
 
@@ -70,10 +86,9 @@ async function checkPelaporanAccess() {
       showAccessDenied(`Akses Ditolak: Akun dengan status '${profile.keterangan_jabatan || 'Non-Aktif'}' tidak diizinkan mengakses modul pelaporan.`);
       return false;
     }
-
     return true;
   } catch (e) {
-    console.warn("Gagal memvalidasi hak akses:", e);
+    console.warn("[Pelaporan] Gagal memvalidasi hak akses:", e);
     return true;
   }
 }
@@ -107,6 +122,9 @@ window.bukaPanel = function(panelId) {
   if (window.lucide) lucide.createIcons();
 };
 
+/**
+ * [DATA] Menarik Data Laporan dari Basis Data Berdasarkan Periode
+ */
 window.muatDataPelaporan = async function() {
   const dbClient = getPelaporanDbClient();
   if (!dbClient) return alert("Koneksi basis data tidak tersedia.");
@@ -152,7 +170,7 @@ window.muatDataPelaporan = async function() {
     document.getElementById("cov_ta").value = `TAHUN AJARAN ${ta}`;
 
     populateDropdownSignatures();
-
+    
     window.renderCover();
     window.renderLaporan();
     window.renderAbsen();
@@ -172,7 +190,7 @@ function ekstrakKegiatanUnik() {
   rawPresensi.forEach(p => {
     const key = `${p.tanggal_kegiatan}_${p.nama_kegiatan}`;
     let parsedFotos = [];
-
+    
     if (p.foto_dokumentasi_url) {
       try {
         const decoded = JSON.parse(p.foto_dokumentasi_url);
@@ -225,6 +243,8 @@ function populateDropdownSignatures() {
     const el = document.getElementById(id);
     if (el) {
       el.innerHTML = optionsHtml;
+      
+      // Auto Select Jabatan Berdasarkan Kolom
       if (id === 'ttd_lap_tengah' || id === 'ttd_abs_pel_kanan' || id === 'ttd_abs_sis_kanan') {
         selectUserByRole(el, 'Kepala Sekolah');
       } else if (id === 'ttd_lap_kiri' || id === 'ttd_abs_pel_kiri' || id === 'ttd_abs_sis_kiri') {
@@ -272,7 +292,8 @@ window.renderCover = function() {
   const sig = getSigData("cov_nama", "Pelatih PMR");
   const jabPembuat = document.getElementById("cov_jabatan").value;
   const ta = document.getElementById("cov_ta").value;
-  const logoUrl = "https://lh3.googleusercontent.com/d/14EmaUclAMOYMXPnnNrCbfyQzTHY4JP4z";
+
+  const logoUrl = "https://lh3.googleusercontent.com/d/14EmaUclAMOYMXPnnNrCbfyQzTHY4JP4z"; // PMI Logo Placeholder
 
   const html = `
     <div style="text-align:center; padding-top:20px; display:flex; flex-direction:column; justify-content:space-between; min-height:280mm; box-sizing:border-box;">
@@ -314,10 +335,12 @@ window.renderLaporan = function() {
           <tr><td>4.</td><td>Materi / Deskripsi</td><td>: ${keg.deskripsi}</td></tr>
           <tr><td>5.</td><td>Hasil yang Dicapai</td><td>: Seluruh peserta mengikuti rangkaian kegiatan pembinaan dengan tertib, terampil, dan memahami materi.</td></tr>
         </table>
+        
         <table class="table-ttd">
           <tr><td style="width:50%;">Mengetahui,<br>${sigKiri.jabatan}</td><td style="width:50%;">Balikpapan, ${formatTglIndo(keg.tanggal)}<br>${sigKanan.jabatan}</td></tr>
           <tr><td colspan="2" style="height:65px;"></td></tr>
           <tr><td><b><u>${sigKiri.nama}</u></b></td><td><b><u>${sigKanan.nama}</u></b></td></tr>
+          
           <tr><td colspan="2" style="padding-top:25px;">Mengetahui,<br>${sigTengah.jabatan}</td></tr>
           <tr><td colspan="2" style="height:65px;"></td></tr>
           <tr><td colspan="2"><b><u>${sigTengah.nama}</u></b></td></tr>
@@ -328,13 +351,8 @@ window.renderLaporan = function() {
   document.getElementById("print-laporan").innerHTML = html || `<p style="text-align:center; padding:20px;">Tidak ada kegiatan.</p>`;
 };
 
-/* --------------------------------------------------------------------------
-   PRESENSI KEGIATAN: KOLOM [NO, NAMA LENGKAP, JABATAN / KELAS, TANGGAL...]
-   - SISWA: EKSKLUSIF ANGGOTA AKTIF (ALUMNI, NON-AKTIF, PEMBINA, & PELATIH DIEKSKLUSIKAN)
-   - PELATIH & PEMBINA: DILEMBAR TERPISAH
--------------------------------------------------------------------------- */
 window.renderAbsen = function(modeCustom = 'normal') {
-  // 1. Identifikasi Unsur Pelatih & Pembina
+  // Identifikasi Unsur Pelatih & Pembina
   const pelatihRoles = ['kepala sekolah', 'pembina 1', 'pembina 2', 'pelatih'];
   const pelatihUsers = rawUsers.filter(u => {
     const ket = (u.keterangan_jabatan || '').toLowerCase();
@@ -342,19 +360,16 @@ window.renderAbsen = function(modeCustom = 'normal') {
     return pelatihRoles.some(r => ket.includes(r) || jab.includes(r));
   });
 
-  // 2. Filter Eksklusif Anggota Aktif PMR (Keluarkan Alumni, Non-Aktif, Pembina, & Pelatih)
+  // Filter Eksklusif Anggota Aktif PMR
   const siswaUsers = rawUsers.filter(u => {
     const ket = (u.keterangan_jabatan || '').toLowerCase();
     const jab = (u.jabatan || '').toLowerCase();
-
     const isDewasa = pelatihRoles.some(r => ket.includes(r) || jab.includes(r));
     const isAlumni = ket.includes('alumni') || jab.includes('alumni');
     const isNonAktif = ket.includes('non-aktif') || jab === 'non-aktif';
-
     return !isDewasa && !isAlumni && !isNonAktif;
   });
 
-  // Urutkan siswa berdasarkan nama secara alfabetis
   siswaUsers.sort((a, b) => (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '', 'id', { sensitivity: 'base' }));
 
   const minKolom = parseInt(document.getElementById("absen_min_kolom").value, 10) || 8;
@@ -388,7 +403,6 @@ window.renderAbsen = function(modeCustom = 'normal') {
         rowTgl += `<td style="text-align:center; font-weight:bold;">${status}</td>`;
       }
     });
-
     const jabatanDisplay = user.keterangan_jabatan || user.jabatan || "-";
     rowPelatih += `
       <tr>
@@ -427,7 +441,7 @@ window.renderAbsen = function(modeCustom = 'normal') {
     </div>
   `;
 
-  // TABEL 2: LEMBAR DAFTAR HADIR ANGGOTA AKTIF SISWA (TERPISAH)
+  // TABEL 2: LEMBAR DAFTAR HADIR ANGGOTA AKTIF SISWA
   const sigSisKiri = getSigData("ttd_abs_sis_kiri", "Pembina 1");
   const sigSisTengah = getSigData("ttd_abs_sis_tengah", "Pelatih");
   const sigSisKanan = getSigData("ttd_abs_sis_kanan", "Kepala Sekolah");
@@ -445,7 +459,6 @@ window.renderAbsen = function(modeCustom = 'normal') {
         rowTgl += `<td style="text-align:center; font-weight:bold;">${status}</td>`;
       }
     });
-
     const role = user.keterangan_jabatan || "Anggota";
     const kelas = user.kelas ? ` / ${user.kelas}` : "";
     const jabatanKelas = `${role}${kelas}`;
@@ -511,7 +524,10 @@ window.renderJurnal = function() {
     <div class="paper-landscape-f4">
       ${kopSurat}
       <div class="judul-laporan">JURNAL KEGIATAN EKSTRAKURIKULER PMR</div>
-      <table class="table-data"><tr style="background:#f1f5f9;"><th style="width:5%; text-align:center;">No</th><th style="width:18%; text-align:center;">Tanggal</th><th>Materi & Uraian Kegiatan</th><th style="width:22%;">Tempat Pelaksanaan</th></tr>${rows || '<tr><td colspan="4" style="text-align:center;">Belum ada jurnal tercatat.</td></tr>'}</table>
+      <table class="table-data">
+        <tr style="background:#f1f5f9;"><th style="width:5%; text-align:center;">No</th><th style="width:18%; text-align:center;">Tanggal</th><th>Materi & Uraian Kegiatan</th><th style="width:22%;">Tempat Pelaksanaan</th></tr>
+        ${rows || '<tr><td colspan="4" style="text-align:center;">Belum ada jurnal tercatat.</td></tr>'}
+      </table>
       <table class="table-ttd" style="width:35%; margin-left:auto; margin-right:0;">
         <tr><td>Balikpapan, ${formatTglIndo(tglAkhir)}<br>${sigJurnal.jabatan}</td></tr>
         <tr><td style="height:65px;"></td></tr>
@@ -575,10 +591,11 @@ window.cetakDiv = function(divId, orientation = 'portrait') {
   const pageStyle = orientation === 'landscape' 
     ? '@page { size: 330mm 215mm; margin: 15mm; }' 
     : '@page { size: 215mm 330mm; margin: 15mm; }';
-
+    
   document.body.classList.add('is-printing');
   document.getElementById("print-container").innerHTML = `<style>${pageStyle}</style>` + konten;
   window.print();
+  
   setTimeout(() => {
     document.body.classList.remove('is-printing');
     document.getElementById("print-container").innerHTML = '';
