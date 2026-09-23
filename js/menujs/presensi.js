@@ -1,14 +1,8 @@
 /**
  * ==============================================================================
  * LOGIKA MODUL PRESENSI - PORTAL PMR SPADAN
- * Diperbarui:
- * - Struktur Presensi 1 Baris Sejajar
- * - Filter Riwayat 2 Baris + Limit 12 kartu
- * - Statistik Bersebelahan (H: 0  I: 0  S: 0  A: 0)
- * - Pratinjau foto tersimpan saat edit & hapus otomatis dari storage
  * ==============================================================================
  */
-
 window.presensiAnggotaOptions = [];
 window.allPresensiSessions = [];
 window.filteredPresensiSessions = [];
@@ -35,7 +29,7 @@ window.initPresensiMenu = async function() {
   const role = (window.activeUserProfile.jabatan || "").toLowerCase();
   const ketJabatan = (window.activeUserProfile.keterangan_jabatan || "").toLowerCase();
   const canManagePresensi = (role === "admin" || role === "pengurus") && ketJabatan !== "alumni" && ketJabatan !== "non-aktif";
-
+  
   if (formCard) {
     formCard.style.display = canManagePresensi ? "flex" : "none";
   }
@@ -52,7 +46,6 @@ window.initPresensiMenu = async function() {
   if (canManagePresensi) {
     await window.loadPresensiMembers();
   }
-
   await window.fetchPresensiHistory();
 };
 
@@ -68,7 +61,6 @@ window.compressImage = function(file) {
         const maxHeight = 1280;
         let width = img.width;
         let height = img.height;
-
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -80,13 +72,11 @@ window.compressImage = function(file) {
             height = maxHeight;
           }
         }
-
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-
         canvas.toBlob(
           (blob) => {
             resolve({ blob: blob, dataUrl: canvas.toDataURL("image/jpeg", 0.75) });
@@ -112,6 +102,12 @@ window.handlePhotoSelection = async function(event) {
 
   const selectedFiles = files.slice(0, availableSlots);
   for (const file of selectedFiles) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert(`Keamanan: File ${file.name} ditolak. Hanya gambar (JPG, PNG, WebP) yang diizinkan.`);
+      continue; 
+    }
+    
     const compressed = await window.compressImage(file);
     window.currentPhotos.push({
       type: "new",
@@ -123,7 +119,6 @@ window.handlePhotoSelection = async function(event) {
   if (files.length > availableSlots) {
     alert(`Hanya ${availableSlots} foto yang ditambahkan karena batas maksimal 4 foto.`);
   }
-
   event.target.value = "";
   window.renderPhotoPreviews();
 };
@@ -153,12 +148,10 @@ window.removePhoto = function(index) {
 window.renderPhotoPreviews = function() {
   const container = document.getElementById("photo-preview-container");
   if (!container) return;
-
   if (window.currentPhotos.length === 0) {
     container.innerHTML = `<span style="font-size: 11px; color: #aaa; grid-column: 1 / -1;">Belum ada foto dipilih.</span>`;
     return;
   }
-
   container.innerHTML = window.currentPhotos.map((item, idx) => `
     <div class="preview-slot">
       <img src="${item.dataUrl || item.url}" alt="Preview ${idx + 1}" />
@@ -170,21 +163,17 @@ window.renderPhotoPreviews = function() {
 window.loadPresensiMembers = async function() {
   const memberListEl = document.getElementById("presensi-member-list");
   if (!memberListEl || !window.db) return;
-
   try {
     const { data, error } = await window.db
       .from("users_profile")
       .select("id, nama_lengkap, nama_panggilan, kelas, keterangan_jabatan, jabatan");
-
     if (error) throw error;
 
     const filteredMembers = (data || []).filter((u) => {
       const role = (u.jabatan || "").toLowerCase();
       const ket = (u.keterangan_jabatan || "").toLowerCase();
-
       const isValidRole = role === "pengurus" || role === "anggota";
       const isNotExcluded = ket !== "alumni" && ket !== "non-aktif";
-
       return isValidRole && isNotExcluded;
     });
 
@@ -195,12 +184,10 @@ window.loadPresensiMembers = async function() {
     });
 
     window.presensiAnggotaOptions = filteredMembers;
-
     if (window.presensiAnggotaOptions.length === 0) {
       memberListEl.innerHTML = `<div style="text-align: center; color: #888; padding: 20px;">Belum ada anggota atau pengurus aktif yang terdaftar.</div>`;
       return;
     }
-
     window.renderMemberListHTML();
   } catch (err) {
     console.error("Gagal memuat anggota:", err.message);
@@ -211,17 +198,18 @@ window.loadPresensiMembers = async function() {
 window.renderMemberListHTML = function(existingStatusMap = {}) {
   const memberListEl = document.getElementById("presensi-member-list");
   if (!memberListEl) return;
-
+  
+  const sanitize = window.parent.sanitizeHTML || window.sanitizeHTML || (x => x);
+  
   memberListEl.innerHTML = window.presensiAnggotaOptions.map((user, index) => {
     const currentStatus = existingStatusMap[user.id] || "Hadir";
-
     return `
       <div class="member-item">
         <div class="member-left">
           <div class="member-number">${index + 1}.</div>
           <div class="member-meta">
-            <div class="nama" title="${user.nama_lengkap}">${user.nama_lengkap}</div>
-            <div class="subtext">Kls: ${user.kelas || "-"} • ${user.keterangan_jabatan}</div>
+            <div class="nama" title="${user.nama_lengkap}">${sanitize(user.nama_lengkap)}</div>
+            <div class="subtext">Kls: ${sanitize(user.kelas) || "-"} | ${sanitize(user.keterangan_jabatan)}</div>
           </div>
         </div>
         <div class="status-options">
@@ -253,24 +241,28 @@ window.renderMemberListHTML = function(existingStatusMap = {}) {
 
 window.submitPresensiData = async function(event) {
   event.preventDefault();
-
   if (window.presensiAnggotaOptions.length === 0) {
     alert("Daftar anggota kehadiran belum tersedia.");
     return;
   }
-
+  
   const submitBtn = document.getElementById("btn-submit-presensi");
-  const editSessionId = document.getElementById("edit-session-id").value;
+  const editSessionIdEl = document.getElementById("edit-session-id");
+  const editSessionId = editSessionIdEl ? editSessionIdEl.value : "";
   const isEditMode = Boolean(editSessionId);
+  
+  // Aman memanipulasi tombol tanpa bergantung ID elemen bersarang
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i data-lucide="loader-2" class="spin-anim" style="width: 16px; height: 16px;"></i> ${isEditMode ? "Memperbarui..." : "Menyimpan..."}`;
+    if (window.lucide) lucide.createIcons();
+  }
 
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = isEditMode ? "Memperbarui..." : "Menyimpan...";
-
-  const namaKegiatan = document.getElementById("presensi-nama").value.trim();
-  const jenisKegiatan = document.getElementById("presensi-jenis").value;
-  const tanggalKegiatan = document.getElementById("presensi-tanggal").value;
-  const tempatKegiatan = document.getElementById("presensi-tempat").value.trim();
-  const deskripsiKegiatan = document.getElementById("presensi-deskripsi").value.trim() || null;
+  const namaKegiatan = document.getElementById("presensi-nama")?.value.trim() || "";
+  const jenisKegiatan = document.getElementById("presensi-jenis")?.value || "";
+  const tanggalKegiatan = document.getElementById("presensi-tanggal")?.value || "";
+  const tempatKegiatan = document.getElementById("presensi-tempat")?.value.trim() || "";
+  const deskripsiKegiatan = document.getElementById("presensi-deskripsi")?.value.trim() || null;
 
   try {
     if (window.photosPendingDelete.length > 0) {
@@ -286,20 +278,17 @@ window.submitPresensiData = async function(event) {
       if (item.type === "existing") {
         uploadedUrls.push(item.url);
       } else if (item.type === "new" && item.blob) {
-        const fileName = `kegiatan_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+        const fileName = `kegiatan_${crypto.randomUUID()}.jpg`;
         const { error: uploadErr } = await window.db.storage
           .from("dokumentasi_kegiatan")
-          .upload(fileName, item.blob, { contentType: "image/jpeg", upsert: true });
-
+          .upload(fileName, item.blob, { contentType: "image/jpeg" });
         if (uploadErr) throw uploadErr;
-
         const { data: publicUrlData } = window.db.storage
           .from("dokumentasi_kegiatan")
           .getPublicUrl(fileName);
         uploadedUrls.push(publicUrlData.publicUrl);
       }
     }
-
     const fotoPayloadString = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null;
     const sessionId = isEditMode ? editSessionId : crypto.randomUUID();
 
@@ -311,7 +300,6 @@ window.submitPresensiData = async function(event) {
     const payloadPresensi = window.presensiAnggotaOptions.map((user) => {
       const checkedRadio = document.querySelector(`input[name="status_${user.id}"]:checked`);
       const status = checkedRadio ? checkedRadio.value : "Hadir";
-
       return {
         sesi_id: sessionId,
         user_id: user.id,
@@ -329,34 +317,40 @@ window.submitPresensiData = async function(event) {
     if (insertErr) throw insertErr;
 
     alert(isEditMode ? "Presensi kegiatan berhasil diperbarui!" : "Presensi kegiatan berhasil disimpan!");
+    
+    // Panggil fungsi reset 
     window.cancelEditPresensi();
     await window.fetchPresensiHistory();
+    
   } catch (err) {
     console.error("Gagal simpan presensi:", err);
-    alert(`Terjadi kesalahan: ${err.message}`);
+    alert(`Terjadi kesalahan saat menyimpan data: ${err.message}`);
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i><span>${document.getElementById("btn-submit-text").textContent}</span>`;
-    if (window.lucide) lucide.createIcons();
+    // Pastikan tombol dipulihkan secara aman walau terjadi error atau berhasil
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      const isStillEdit = editSessionIdEl ? editSessionIdEl.value !== "" : false;
+      submitBtn.innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> ${isStillEdit ? "Perbarui Presensi" : "Simpan Presensi"}`;
+      if (window.lucide) lucide.createIcons();
+    }
   }
 };
 
 window.editPresensiSession = async function(sessionId) {
   const records = window.allPresensiSessions.find((s) => s.sesi_id === sessionId)?.records || [];
   if (records.length === 0) return;
-
   const sesi = records[0];
-
-  document.getElementById("edit-session-id").value = sesi.sesi_id;
-  document.getElementById("presensi-nama").value = sesi.nama_kegiatan || "";
-  document.getElementById("presensi-jenis").value = sesi.jenis_kegiatan || "Latihan Rutin";
-  document.getElementById("presensi-tanggal").value = sesi.tanggal_kegiatan || "";
-  document.getElementById("presensi-tempat").value = sesi.tempat_kegiatan || "";
-  document.getElementById("presensi-deskripsi").value = sesi.deskripsi_kegiatan || "";
+  
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setVal("edit-session-id", sesi.sesi_id);
+  setVal("presensi-nama", sesi.nama_kegiatan || "");
+  setVal("presensi-jenis", sesi.jenis_kegiatan || "Latihan Rutin");
+  setVal("presensi-tanggal", sesi.tanggal_kegiatan || "");
+  setVal("presensi-tempat", sesi.tempat_kegiatan || "");
+  setVal("presensi-deskripsi", sesi.deskripsi_kegiatan || "");
 
   window.currentPhotos = [];
   window.photosPendingDelete = [];
-
   if (sesi.foto_dokumentasi_url) {
     try {
       const parsed = JSON.parse(sesi.foto_dokumentasi_url);
@@ -374,52 +368,78 @@ window.editPresensiSession = async function(sessionId) {
   if (window.presensiAnggotaOptions.length === 0) {
     await window.loadPresensiMembers();
   }
-
   const statusMap = {};
   records.forEach((r) => { statusMap[r.user_id] = r.status_kehadiran; });
   window.renderMemberListHTML(statusMap);
 
-  document.getElementById("presensi-form-title").textContent = "Edit Presensi Kegiatan";
-  document.getElementById("presensi-form-desc").textContent = "Perbarui rincian kegiatan, foto dokumentasi, atau status kehadiran.";
-  document.getElementById("badge-edit-mode").style.display = "inline-block";
-  document.getElementById("btn-cancel-edit").style.display = "inline-block";
-  document.getElementById("btn-submit-text").textContent = "Perbarui Presensi";
+  try {
+    const formTitle = document.getElementById("presensi-form-title");
+    if (formTitle) formTitle.textContent = "Edit Presensi Kegiatan";
+    
+    const formDesc = document.getElementById("presensi-form-desc");
+    if (formDesc) formDesc.textContent = "Perbarui rincian kegiatan, foto dokumentasi, atau status kehadiran.";
+    
+    const badgeEdit = document.getElementById("badge-edit-mode");
+    if (badgeEdit) badgeEdit.style.display = "inline-block";
+    
+    const btnCancel = document.getElementById("btn-cancel-edit");
+    if (btnCancel) btnCancel.style.display = "inline-block";
+    
+    const submitBtn = document.getElementById("btn-submit-presensi");
+    if (submitBtn) submitBtn.innerHTML = `<i data-lucide="edit-2" style="width: 16px; height: 16px;"></i> Perbarui Presensi`;
+  } catch (e) {
+    console.warn("DOM warning on edit:", e);
+  }
 
   document.getElementById("card-form-presensi")?.scrollIntoView({ behavior: "smooth" });
   if (window.lucide) lucide.createIcons();
 };
 
 window.cancelEditPresensi = function() {
-  document.getElementById("form-presensi").reset();
-  document.getElementById("edit-session-id").value = "";
-  document.getElementById("presensi-tanggal").value = new Date().toISOString().split("T")[0];
-
-  window.currentPhotos = [];
-  window.photosPendingDelete = [];
-  window.renderPhotoPreviews();
-  window.renderMemberListHTML();
-
-  document.getElementById("presensi-form-title").textContent = "Formulir Presensi Kegiatan";
-  document.getElementById("presensi-form-desc").textContent = "Isi rincian agenda dan tentukan status kehadiran anggota PMR.";
-  document.getElementById("badge-edit-mode").style.display = "none";
-  document.getElementById("btn-cancel-edit").style.display = "none";
-  document.getElementById("btn-submit-text").textContent = "Simpan Presensi";
-  if (window.lucide) lucide.createIcons();
+  try {
+    const form = document.getElementById("form-presensi");
+    if (form) form.reset();
+    
+    const editSessionIdEl = document.getElementById("edit-session-id");
+    if (editSessionIdEl) editSessionIdEl.value = "";
+    
+    const tglInput = document.getElementById("presensi-tanggal");
+    if (tglInput) tglInput.value = new Date().toISOString().split("T")[0];
+    
+    window.currentPhotos = [];
+    window.photosPendingDelete = [];
+    window.renderPhotoPreviews();
+    window.renderMemberListHTML();
+    
+    const formTitle = document.getElementById("presensi-form-title");
+    if (formTitle) formTitle.textContent = "Formulir Presensi Kegiatan";
+    
+    const formDesc = document.getElementById("presensi-form-desc");
+    if (formDesc) formDesc.textContent = "Isi rincian agenda dan tentukan status kehadiran anggota PMR.";
+    
+    const badgeEdit = document.getElementById("badge-edit-mode");
+    if (badgeEdit) badgeEdit.style.display = "none";
+    
+    const btnCancel = document.getElementById("btn-cancel-edit");
+    if (btnCancel) btnCancel.style.display = "none";
+    
+    const submitBtn = document.getElementById("btn-submit-presensi");
+    if (submitBtn) submitBtn.innerHTML = `<i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> Simpan Presensi`;
+    
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    console.warn("UI reset aman dipulihkan:", e);
+  }
 };
 
-/* --------------------------------------------------------------------------
-   LOGIKA FILTER & PAGINATION RIWAYAT
--------------------------------------------------------------------------- */
 window.fetchPresensiHistory = async function() {
   const container = document.getElementById("sesi-list-container");
   if (!container || !window.db) return;
-
   try {
     const { data, error } = await window.db
       .from("presensi")
       .select(`*, users_profile:user_id ( id, nama_lengkap, nama_panggilan, kelas )`)
       .order("tanggal_kegiatan", { ascending: false });
-
     if (error) throw error;
     
     const sessionMap = {};
@@ -446,7 +466,7 @@ window.fetchPresensiHistory = async function() {
       
       sessionMap[row.sesi_id].records.push(row);
     });
-
+    
     window.allPresensiSessions = Object.values(sessionMap).sort((a,b) => new Date(b.tanggal_kegiatan) - new Date(a.tanggal_kegiatan));
     window.handleHistoryFilter();
   } catch (err) {
@@ -461,7 +481,6 @@ window.handleHistoryFilter = function() {
   const jenis = document.getElementById("filter-jenis-history")?.value;
 
   let filtered = window.allPresensiSessions || [];
-
   if (jenis) {
     filtered = filtered.filter(s => s.jenis_kegiatan === jenis);
   }
@@ -494,7 +513,6 @@ window.renderPresensiSessions = function() {
   if (!container) return;
 
   const filtered = window.filteredPresensiSessions || [];
-
   if (filtered.length === 0) {
     container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 30px;">Tidak ada riwayat presensi yang sesuai filter.</div>`;
     return;
@@ -503,16 +521,15 @@ window.renderPresensiSessions = function() {
   const userRole = window.activeUserProfile ? (window.activeUserProfile.jabatan || "").toLowerCase() : "guest";
   const userKet = window.activeUserProfile ? (window.activeUserProfile.keterangan_jabatan || "").toLowerCase() : "";
   const canManage = (userRole === "admin" || userRole === "pengurus") && userKet !== "alumni" && userKet !== "non-aktif";
+  const sanitize = window.parent.sanitizeHTML || window.sanitizeHTML || (x => x);
 
   const displayed = filtered.slice(0, window.historyDisplayLimit);
-
   const html = displayed.map((sesi) => `
     <div class="sesi-card">
       <div class="sesi-card-header">
-        <div class="sesi-title">${sesi.nama_kegiatan}</div>
-        <span class="sesi-badge">${sesi.jenis_kegiatan}</span>
+        <div class="sesi-title">${sanitize(sesi.nama_kegiatan)}</div>
+        <span class="sesi-badge">${sanitize(sesi.jenis_kegiatan)}</span>
       </div>
-
       <div class="sesi-meta-row">
         <div class="sesi-meta-item">
           <i data-lucide="calendar"></i>
@@ -520,17 +537,15 @@ window.renderPresensiSessions = function() {
         </div>
         <div class="sesi-meta-item">
           <i data-lucide="map-pin"></i>
-          <span>${sesi.tempat_kegiatan}</span>
+          <span>${sanitize(sesi.tempat_kegiatan)}</span>
         </div>
       </div>
-
       <div class="sesi-stats-inline">
         <div class="stat-badge stat-hadir"><small>H:</small> ${sesi.hadir}</div>
         <div class="stat-badge stat-izin"><small>I:</small> ${sesi.izin}</div>
         <div class="stat-badge stat-sakit"><small>S:</small> ${sesi.sakit}</div>
         <div class="stat-badge stat-alpa"><small>A:</small> ${sesi.alpa}</div>
       </div>
-
       <div class="sesi-actions">
         <button class="btn-sm-action btn-detail" onclick="window.openDetailPresensiModal('${sesi.sesi_id}')">
           <i data-lucide="eye" style="width: 11px; height: 11px;"></i> Detail
@@ -568,13 +583,13 @@ window.renderPresensiSessions = function() {
 window.openDetailPresensiModal = function(sessionId) {
   const records = window.allPresensiSessions.find((s) => s.sesi_id === sessionId)?.records || [];
   if (records.length === 0) return;
-
   const sesi = records[0];
   const modal = document.getElementById("modal-detail-presensi");
   const title = document.getElementById("detail-modal-title");
   const body = document.getElementById("detail-modal-body");
+  const sanitize = window.parent.sanitizeHTML || window.sanitizeHTML || (x => x);
 
-  title.textContent = `Detail: ${sesi.nama_kegiatan}`;
+  if (title) title.textContent = `Detail: ${sesi.nama_kegiatan}`;
 
   let photos = [];
   if (sesi.foto_dokumentasi_url) {
@@ -607,20 +622,18 @@ window.openDetailPresensiModal = function(sessionId) {
   const rowsHtml = records.map((r, i) => {
     const nama = r.users_profile ? r.users_profile.nama_lengkap : "Nama Tidak Ditemukan";
     const kelas = r.users_profile ? r.users_profile.kelas : "-";
-
     let colorStyle = "color: #16a34a;";
     if (r.status_kehadiran === "Izin") colorStyle = "color: #0288d1;";
     else if (r.status_kehadiran === "Sakit") colorStyle = "color: #f59e0b;";
     else if (r.status_kehadiran === "Alpa") colorStyle = "color: #dc2626;";
     else if (r.status_kehadiran === "Tidak Ditugaskan") colorStyle = "color: #64748b;";
-
     return `
       <div style="display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px;">
         <div style="display: flex; gap: 8px;">
           <div style="color:#64748b; font-weight:700;">${i+1}.</div>
           <div>
-            <strong>${nama}</strong>
-            <div style="font-size: 11px; color: #777;">Kelas: ${kelas}</div>
+            <strong>${sanitize(nama)}</strong>
+            <div style="font-size: 11px; color: #777;">Kelas: ${sanitize(kelas)}</div>
           </div>
         </div>
         <span style="font-weight: 700; ${colorStyle}">${r.status_kehadiran}</span>
@@ -628,26 +641,25 @@ window.openDetailPresensiModal = function(sessionId) {
     `;
   }).join("");
 
-  body.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div style="font-size: 12px; color: #444; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #eee;">
-        <p><strong>Jenis Kegiatan:</strong> ${sesi.jenis_kegiatan}</p>
-        <p><strong>Tanggal:</strong> ${window.formatTanggalIndo(sesi.tanggal_kegiatan)}</p>
-        <p><strong>Tempat:</strong> ${sesi.tempat_kegiatan}</p>
-        ${sesi.deskripsi_kegiatan ? `<p><strong>Deskripsi:</strong> ${sesi.deskripsi_kegiatan}</p>` : ""}
-      </div>
-
-      ${photosHtml}
-
-      <div>
-        <h4 style="font-size: 13px; margin-bottom: 6px; color: #333;">Daftar Hadir Anggota:</h4>
-        <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px;">
-          ${rowsHtml}
+  if (body) {
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 12px; color: #444; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #eee;">
+          <p><strong>Jenis Kegiatan:</strong> ${sanitize(sesi.jenis_kegiatan)}</p>
+          <p><strong>Tanggal:</strong> ${window.formatTanggalIndo(sesi.tanggal_kegiatan)}</p>
+          <p><strong>Tempat:</strong> ${sanitize(sesi.tempat_kegiatan)}</p>
+          ${sesi.deskripsi_kegiatan ? `<p><strong>Deskripsi:</strong> ${sanitize(sesi.deskripsi_kegiatan)}</p>` : ""}
+        </div>
+        ${photosHtml}
+        <div>
+          <h4 style="font-size: 13px; margin-bottom: 6px; color: #333;">Daftar Hadir Anggota:</h4>
+          <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px;">
+            ${rowsHtml}
+          </div>
         </div>
       </div>
-    </div>
-  `;
-
+    `;
+  }
   if (modal) modal.classList.add("active");
 };
 
@@ -657,7 +669,6 @@ window.closeDetailPresensiModal = function() {
 
 window.deletePresensiSession = async function(sessionId) {
   if (!confirm("Apakah Anda yakin ingin menghapus seluruh rekaman kegiatan ini?")) return;
-
   try {
     const records = window.allPresensiSessions.find((s) => s.sesi_id === sessionId)?.records || [];
     if (records.length > 0 && records[0].foto_dokumentasi_url) {
@@ -672,10 +683,8 @@ window.deletePresensiSession = async function(sessionId) {
         console.warn("Gagal menghapus file gambar sesi:", e);
       }
     }
-
     const { error } = await window.db.from("presensi").delete().eq("sesi_id", sessionId);
     if (error) throw error;
-
     alert("Presensi kegiatan berhasil dihapus.");
     await window.fetchPresensiHistory();
   } catch (err) {
