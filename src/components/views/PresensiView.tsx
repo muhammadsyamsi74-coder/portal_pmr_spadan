@@ -36,6 +36,25 @@ import {
 } from '../../utils/security';
 import { PhotoViewerModal } from '../modals/PhotoViewerModal';
 
+/**
+ * ============================================================================
+ * MODUL PRESENSI & DOKUMENTASI KEGIATAN PMR (PRESENSIVIEW.TSX)
+ * ============================================================================
+ * Modul ini menangani seluruh alur presensi kegiatan organisasi:
+ * 1. Formulir Pencatatan Sesi:
+ *    - Metadata kegiatan: Nama, Kategori (Latihan Rutin, Donor Darah, Lomba, dll.), Tanggal, Tempat, Deskripsi.
+ *    - Multi-foto dokumentasi dengan kompresi HTML5 Canvas di sisi klien sebelum diunggah ke storage.
+ *    - Lembar Checklist Kehadiran: Tombol cepat 'Set Semua Hadir' dan penanda individual (Hadir, Sakit, Izin, Alpa).
+ * 2. Riwayat Presensi & Filter:
+ *    - Pencarian nama/tempat/deskripsi, filter rentang tanggal, filter jenis kegiatan.
+ *    - Kartu riwayat interaktif dengan statistik persentase kehadiran dan thumbnail foto dokumentasi.
+ * 3. Modal Detail Presensi:
+ *    - Pratinjau daftar lengkap peserta dan statusnya, pencarian peserta, serta filter status.
+ * 4. Pengelolaan Sesi (Edit & Hapus):
+ *    - Mode edit sesi presensi yang mengisi ulang seluruh data ke formulir atas.
+ *    - Hapus sesi presensi dengan modal konfirmasi aman serta pembersihan berkas foto otomatis dari storage Supabase.
+ */
+
 interface PhotoItem {
   type: 'existing' | 'new';
   url?: string;
@@ -46,21 +65,24 @@ interface PhotoItem {
 export const PresensiView: React.FC = () => {
   const { profile } = useAuth();
 
+  // Data master anggota aktif untuk lembar checklist presensi
   const [activeMembers, setActiveMembers] = useState<UserProfile[]>([]);
+  
+  // Data riwayat sesi presensi yang dikelompokkan per sesi kegiatan
   const [sessions, setSessions] = useState<PresensiSessionSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyLimit, setHistoryLimit] = useState(12);
 
-  // Filters for history
+  // State Filter Riwayat Presensi
   const [historySearch, setHistorySearch] = useState('');
   const [filterTglMulai, setFilterTglMulai] = useState('');
   const [filterTglAkhir, setFilterTglAkhir] = useState('');
   const [filterJenis, setFilterJenis] = useState('');
 
-  // Roster filtering in form
+  // Filter pencarian nama anggota pada lembar checklist formulir
   const [rosterSearch, setRosterSearch] = useState('');
 
-  // Form State
+  // State Formulir Input Presensi
   const [editSessionId, setEditSessionId] = useState<string | null>(null);
   const [namaKegiatan, setNamaKegiatan] = useState('');
   const [jenisKegiatan, setJenisKegiatan] = useState('Latihan Rutin');
@@ -74,18 +96,21 @@ export const PresensiView: React.FC = () => {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Detail Modal State
+  // State Modal Detail Presensi
   const [detailSession, setDetailSession] = useState<PresensiSessionSummary | null>(null);
   const [modalFilterStatus, setModalFilterStatus] = useState<string>('Semua');
   const [modalSearch, setModalSearch] = useState('');
 
-  // Delete Confirmation Modal State
+  // State Modal Konfirmasi Hapus Sesi Presensi
   const [sessionToDelete, setSessionToDelete] = useState<PresensiSessionSummary | null>(null);
   const [isDeletingSession, setIsDeletingSession] = useState(false);
 
-  // Toast Banner State
+  // State Notifikasi Toast Pengganti Alert Bawaan Browser
   const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  /**
+   * Menampilkan pesan toast inline yang otomatis menghilang setelah 4.5 detik.
+   */
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setFeedbackToast({ message, type });
     setTimeout(() => {
@@ -93,9 +118,10 @@ export const PresensiView: React.FC = () => {
     }, 4500);
   };
 
-  // Photo Zoom State
+  // State zoom foto dokumentasi resolusi penuh
   const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
 
+  // Hak akses: Pengurus, Pembina, dan Admin berhak mengelola & menghapus presensi
   const canManage = canManagePresensi(profile);
   const userIsAdmin = isAdmin(profile);
   const canDelete = userIsAdmin || canManage;
@@ -222,6 +248,11 @@ export const PresensiView: React.FC = () => {
     e.target.value = '';
   };
 
+  /**
+   * Menghapus salah satu foto dokumentasi dari pratinjau formulir.
+   * Jika foto tersebut sudah tersimpan sebelumnya di Supabase Storage,
+   * URL-nya dimasukkan ke daftar `photosPendingDelete` untuk dihapus permanen saat formulir disimpan.
+   */
   const handleRemovePhoto = (index: number) => {
     const target = currentPhotos[index];
     if (target.type === 'existing' && target.url) {
@@ -230,6 +261,9 @@ export const PresensiView: React.FC = () => {
     setCurrentPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
+  /**
+   * Menghapus seluruh foto dokumentasi sekaligus dari pratinjau.
+   */
   const handleClearAllPhotos = () => {
     currentPhotos.forEach(target => {
       if (target.type === 'existing' && target.url) {
@@ -239,7 +273,9 @@ export const PresensiView: React.FC = () => {
     setCurrentPhotos([]);
   };
 
-  // Reset Form
+  /**
+   * Mengosongkan formulir presensi kembali ke kondisi awal (default: semua anggota Hadir).
+   */
   const resetForm = () => {
     setEditSessionId(null);
     setNamaKegiatan('');
@@ -251,7 +287,7 @@ export const PresensiView: React.FC = () => {
     setPhotosPendingDelete([]);
     setFormError(null);
 
-    // Reset status to "Hadir"
+    // Setel ulang status seluruh anggota menjadi "Hadir"
     const freshStatus: Record<string, 'Hadir' | 'Izin' | 'Sakit' | 'Alpa' | 'Tidak Ditugaskan'> = {};
     activeMembers.forEach(u => {
       freshStatus[u.id] = 'Hadir';
@@ -259,7 +295,15 @@ export const PresensiView: React.FC = () => {
     setStatusMap(freshStatus);
   };
 
-  // Submit Presensi
+  /**
+   * Menyimpan Sesi Presensi ke Database Supabase:
+   * Alur Eksekusi:
+   * 1. Menghapus berkas foto lama dari bucket `dokumentasi_kegiatan` jika dihapus saat pengeditan.
+   * 2. Mengunggah berkas foto kompresi baru ke Supabase Storage.
+   * 3. Jika mode edit (`editSessionId` ada): Menghapus baris presensi lama untuk `sesi_id` tersebut.
+   * 4. Memasukkan batch baris baru untuk setiap anggota aktif ke tabel `presensi`.
+   * 5. Menampilkan toast notifikasi berhasil dan memuat ulang riwayat.
+   */
   const handleSubmitPresensi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeMembers.length === 0) {
@@ -271,7 +315,7 @@ export const PresensiView: React.FC = () => {
     setFormSubmitting(true);
 
     try {
-      // 1. Remove deleted existing storage files
+      // 1. Bersihkan berkas foto lama yang ditandai untuk dihapus
       if (photosPendingDelete.length > 0) {
         const fileNames = photosPendingDelete.map(url => {
           const marker = '/dokumentasi_kegiatan/';
@@ -288,7 +332,7 @@ export const PresensiView: React.FC = () => {
         }
       }
 
-      // 2. Upload new photos
+      // 2. Unggah foto dokumentasi baru yang telah dikompresi
       const uploadedUrls: string[] = [];
       for (const item of currentPhotos) {
         if (item.type === 'existing' && item.url) {
@@ -311,7 +355,7 @@ export const PresensiView: React.FC = () => {
       const fotoPayloadString = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null;
       const targetSessionId = editSessionId || crypto.randomUUID();
 
-      // If editing, delete existing records for this session first
+      // 3. Jika mode edit: hapus record kehadiran lama sesi ini sebelum insert batch baru
       if (editSessionId) {
         const { error: delErr } = await supabase
           .from('presensi')
@@ -321,7 +365,7 @@ export const PresensiView: React.FC = () => {
         if (delErr) throw delErr;
       }
 
-      // Insert fresh attendance batch
+      // 4. Susun dan masukkan kumpulan data presensi per anggota (Batch Insert)
       const insertPayload = activeMembers.map(user => ({
         sesi_id: targetSessionId,
         user_id: user.id,
@@ -347,7 +391,11 @@ export const PresensiView: React.FC = () => {
     }
   };
 
-  // Edit existing session
+  /**
+   * Membuka sesi presensi yang sudah tersimpan untuk diedit:
+   * Mengisi kembali form atas dengan judul, kategori, tanggal, tempat, deskripsi,
+   * foto dokumentasi yang tersimpan, dan status checklist per anggota.
+   */
   const handleEditSession = (sessionId: string) => {
     const sesi = sessions.find(s => s.sesi_id === sessionId);
     if (!sesi || sesi.records.length === 0) return;
@@ -359,7 +407,7 @@ export const PresensiView: React.FC = () => {
     setTempatKegiatan(sesi.tempat_kegiatan || '');
     setDeskripsiKegiatan(sesi.deskripsi_kegiatan || '');
 
-    // Photos
+    // Ekstrak URL foto dokumentasi dari string JSON
     const photos: PhotoItem[] = [];
     if (sesi.foto_dokumentasi_url) {
       try {
@@ -373,7 +421,7 @@ export const PresensiView: React.FC = () => {
     setCurrentPhotos(photos);
     setPhotosPendingDelete([]);
 
-    // Populate attendance map
+    // Petakan status presensi masing-masing anggota pada sesi ini
     const newStatusMap: Record<string, 'Hadir' | 'Izin' | 'Sakit' | 'Alpa' | 'Tidak Ditugaskan'> = {};
     activeMembers.forEach(u => {
       newStatusMap[u.id] = 'Hadir';
@@ -383,11 +431,17 @@ export const PresensiView: React.FC = () => {
     });
     setStatusMap(newStatusMap);
 
-    // Scroll to top form
+    // Gulirkan layar ke formulir atas secara halus
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Delete session with modal confirmation
+  /**
+   * Menghapus Sesi Presensi beserta berkas foto pendukungnya:
+   * 1. Mengekstrak nama berkas foto dari URL Supabase Storage.
+   * 2. Menghapus berkas fisik foto dari bucket `dokumentasi_kegiatan`.
+   * 3. Menghapus seluruh baris record kehadiran yang memiliki `sesi_id` tersebut.
+   * 4. Menampilkan notifikasi berhasil dan memuat ulang riwayat presensi.
+   */
   const handleConfirmDeleteSession = async () => {
     if (!sessionToDelete) return;
     if (!canDelete) return;

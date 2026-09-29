@@ -606,43 +606,143 @@ body {
   animation: fadeIn 0.3s ease;
 }
 
+/* GUEST BANNER / HEADER SEBELUM LOGIN */
 .dash-guest-card {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-  border-radius: 20px;
-  padding: 22px 26px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 70%, #4338ca 100%);
+  border-radius: 22px;
+  padding: 24px 28px;
   color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 10px 28px rgba(49, 46, 129, 0.25);
+  gap: 24px;
+  box-shadow: 0 12px 32px rgba(30, 27, 75, 0.35);
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
-.guest-left { max-width: 620px; z-index: 1; }
+.dash-guest-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -30px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dash-guest-card::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: -30px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.guest-left {
+  max-width: 620px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.guest-brand-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.guest-logos-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 3px 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.guest-logo-item {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
 .guest-badge-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   color: #e0e7ff;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
-  margin-bottom: 6px;
 }
-.guest-left h2 { font-size: 19px; font-weight: 900; color: #ffffff; letter-spacing: 0.2px; margin: 0 0 6px 0; }
-.guest-desc { font-size: 11.5px; color: #c7d2fe; line-height: 1.45; font-weight: 500; margin: 0; }
+
+.guest-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.guest-left h2 {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+  margin: 0 0 6px 0;
+  line-height: 1.35;
+}
+
+.guest-desc {
+  font-size: 12.5px;
+  color: #c7d2fe;
+  line-height: 1.5;
+  font-weight: 500;
+  margin: 0 0 10px 0;
+}
+
+.guest-features-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.guest-feat-chip {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e0e7ff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+}
 
 .guest-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
   z-index: 1;
 }
@@ -650,26 +750,38 @@ body {
 .btn-guest-action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
+  gap: 7px;
+  padding: 11px 20px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 .btn-guest-login {
   background: #ffffff;
-  color: #312e81;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  color: #1e1b4b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.btn-guest-login:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
 }
 
 .btn-guest-reg {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.btn-guest-reg:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
 }
 
 .dash-hero-card {
@@ -1722,6 +1834,104 @@ body {
   .dash-top-workspace-grid { grid-template-columns: 1fr; }
   .cal-main-desktop-split { grid-template-columns: 1fr; }
   
+  /* ========================================================
+     GUEST HERO BANNER PADA LAYAR HP / MOBILE
+     ======================================================== */
+  .dash-guest-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 18px 16px !important;
+    gap: 14px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 24px rgba(30, 27, 75, 0.3) !important;
+  }
+
+  .guest-left {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .guest-brand-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+  }
+
+  .guest-logos-mini {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 3px 6px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+  }
+
+  .guest-logo-item {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .guest-badge-pill {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+    letter-spacing: 0.2px !important;
+  }
+
+  .guest-left h2 {
+    font-size: 18px !important;
+    line-height: 1.35 !important;
+    letter-spacing: 0.1px !important;
+    margin: 0 0 6px 0 !important;
+  }
+
+  .guest-desc {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    color: #c7d2fe !important;
+    margin: 0 0 10px 0 !important;
+  }
+
+  .guest-features-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .guest-feat-chip {
+    font-size: 10px !important;
+    padding: 2.5px 7px !important;
+  }
+
+  .guest-right {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  .btn-guest-action {
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 11px 8px !important;
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+  }
+
+  @media (max-width: 360px) {
+    .guest-right {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
   /* FOTO DOKUMENTASI KEGIATAN: RASIO 4:2.5 LANDSCAPE DI HP */
   .photo-slide-card .slide-wrapper {
     aspect-ratio: 4 / 2.5 !important;

@@ -39,14 +39,31 @@ import {
 } from '../../utils/security';
 import { PhotoViewerModal } from '../modals/PhotoViewerModal';
 
+/**
+ * ============================================================================
+ * MODUL MANAJEMEN ANGGOTA PMR SPADAN (ANGGOTAVIEW.TSX)
+ * ============================================================================
+ * Modul ini menyediakan sistem direktori dan manajemen data anggota komprehensif:
+ * 1. Menampilkan daftar anggota dalam 2 mode: Kartu Interaktif & Struktur Organisasi.
+ * 2. Statistik ringkasan (Anggota Aktif, Pengajuan Baru, Korps Alumni, Arsip Non-Aktif).
+ * 3. Pencarian instan multi-kriteria & filter kategori status keanggotaan.
+ * 4. Tambah & Edit Anggota (Data Diri, NISN, Golongan Darah, Medis, Foto Profil Kompresi Canvas).
+ * 5. Hapus Anggota dengan verifikasi keamanan kata sandi akun Admin.
+ * 6. Proteksi privasi data:
+ *    - Penyamaran status Admin bagi Guest & Alumni menjadi Pengurus.
+ *    - Penyembunyian riwayat penyakit bagi Guest, Alumni, dan anggota lainnya.
+ *    - Penyembunyian tanggal lahir bagi Guest, Alumni, dan anggota lainnya.
+ *    - Pembatasan tombol WhatsApp Pribadi & WhatsApp Orang Tua berdasarkan peran.
+ */
 export const AnggotaView: React.FC = () => {
   const { profile, user } = useAuth();
 
+  // Data master anggota dari Supabase
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Delete Member Confirmation with Password Verification Modal
+  // State Modal Konfirmasi Hapus Anggota (Memerlukan verifikasi password Admin)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<UserProfile | null>(null);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -55,7 +72,7 @@ export const AnggotaView: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
-  // Filters & Views
+  // State Filter Pencarian, Status Kategori, dan Mode Tampilan ('cards' | 'structure')
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'structure'>('cards');
@@ -63,6 +80,7 @@ export const AnggotaView: React.FC = () => {
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
 
+  // Listener resize jendela browser untuk deteksi layar mobile
   useEffect(() => {
     const handleResize = () => {
       setIsMobileScreen(window.innerWidth <= 768);
@@ -71,6 +89,7 @@ export const AnggotaView: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // State accordion kartu: menyimpan ID anggota mana saja yang sedang terbuka detailnya
   const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
 
   const toggleCardExpand = (id: string) => {
@@ -80,10 +99,10 @@ export const AnggotaView: React.FC = () => {
     }));
   };
 
-  // Photo viewer state
+  // State zoom foto profil resolusi tinggi
   const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
 
-  // Add / Edit Modal state
+  // State Formulir Tambah / Edit Anggota
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [formNamaLengkap, setFormNamaLengkap] = useState('');
@@ -107,11 +126,13 @@ export const AnggotaView: React.FC = () => {
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Penentuan hak akses pengguna yang sedang login (Viewer)
   const canManage = canManageMembers(profile);
   const userIsAdmin = isAdmin(profile);
   const isGuest = !profile;
   const isViewerAlumni = isAlumni(profile);
-  // Sembunyikan informasi jabatan admin untuk Guest dan Alumni
+  
+  // Kebijakan Privasi: Sembunyikan informasi wewenang Admin dari Guest dan Alumni
   const hideAdminInfo = isGuest || isViewerAlumni;
 
   // Aturan hak akses tombol WhatsApp:
@@ -222,6 +243,10 @@ export const AnggotaView: React.FC = () => {
     return false;
   })();
 
+  /**
+   * Mengambil data seluruh anggota dari tabel database Supabase `users_profile`
+   * secara berurutan berdasarkan nama lengkap (A-Z).
+   */
   const fetchMembers = async () => {
     setLoading(true);
     setError(null);
@@ -240,11 +265,12 @@ export const AnggotaView: React.FC = () => {
     }
   };
 
+  // Muat data anggota saat komponen pertama kali dipasang (mount)
   useEffect(() => {
     fetchMembers();
   }, []);
 
-  // Summary counts
+  // Perhitungan statistik ringkasan jumlah anggota per kategori
   let countAktif = 0;
   let countUsulan = 0;
   let countAlumni = 0;
@@ -259,7 +285,11 @@ export const AnggotaView: React.FC = () => {
     else countAktif++;
   });
 
-  // Filter list
+  /**
+   * Logika Filter Pencarian:
+   * Menyaring anggota berdasarkan Nama Lengkap, Nama Panggilan, NISN, atau Kelas.
+   * Catatan keamanan: Anggota non-aktif hanya dapat dicari jika pengguna memiliki hak `canManage`.
+   */
   const filteredList = members.filter(item => {
     const ket = (item.keterangan_jabatan || '').toLowerCase();
     if (ket === 'non-aktif' && !canManage) {
@@ -276,7 +306,7 @@ export const AnggotaView: React.FC = () => {
     return matchSearch;
   });
 
-  // Split into categories
+  // Pengelompokan daftar anggota hasil filter ke dalam 4 kategori status
   const listAktif: UserProfile[] = [];
   const listUsulan: UserProfile[] = [];
   const listAlumni: UserProfile[] = [];
@@ -352,7 +382,15 @@ export const AnggotaView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Submit Add/Edit form
+  /**
+   * Menyimpan Data Anggota (Mode Tambah Anggota Baru atau Mode Edit Profil).
+   * Alur Keamanan & Pemrosesan:
+   * 1. Kompresi gambar via HTML5 Canvas (resolusi maks 400px, kualitas 0.75) untuk efisiensi penyimpanan.
+   * 2. Unggah berkas ke bucket Supabase Storage `profil-anggota`.
+   * 3. Sanitasi string untuk menangkal serangan XSS / script injection.
+   * 4. Jika tambah baru: Mendaftarkan akun autentikasi via `supabase.auth.signUp()`.
+   * 5. Memasukkan atau memperbarui baris data pada tabel `users_profile`.
+   */
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
@@ -361,6 +399,7 @@ export const AnggotaView: React.FC = () => {
     try {
       let fotoUrl: string | null = null;
       if (formFotoFile) {
+        // Kompresi foto sisi klien sebelum diunggah
         const compressed = await compressImage(formFotoFile, 400, 0.75);
         const fileName = `foto_${crypto.randomUUID()}.jpg`;
 
@@ -376,6 +415,7 @@ export const AnggotaView: React.FC = () => {
         }
       }
 
+      // Siapkan payload data dengan sanitasi input
       const payload: Partial<UserProfile> = {
         nama_lengkap: sanitizeText(formNamaLengkap).toUpperCase(),
         nama_panggilan: sanitizeText(formNamaPanggilan),
@@ -391,6 +431,7 @@ export const AnggotaView: React.FC = () => {
         no_wa_ortu: sanitizeText(formWaOrtu) || null
       };
 
+      // Hanya pengurus/admin yang diizinkan mengubah status jabatan
       if (canManage) {
         payload.jabatan = formJabatan;
         payload.keterangan_jabatan = formKeteranganJabatan;
@@ -401,6 +442,7 @@ export const AnggotaView: React.FC = () => {
       }
 
       if (editingUserId) {
+        // MODE EDIT: Perbarui data profil anggota yang sudah ada
         const { error: updateErr } = await supabase
           .from('users_profile')
           .update(payload)
@@ -408,7 +450,7 @@ export const AnggotaView: React.FC = () => {
 
         if (updateErr) throw updateErr;
       } else {
-        // Create new user auth
+        // MODE TAMBAH BARU: Buat akun login Supabase Auth terlebih dahulu
         const trimmedEmail = formEmail.trim();
         if (formPassword.length < 6) {
           throw new Error('Kata sandi minimal harus 6 karakter.');
@@ -440,7 +482,12 @@ export const AnggotaView: React.FC = () => {
     }
   };
 
-  // Delete Member Confirmation Handlers
+  /**
+   * Membuka modal konfirmasi hapus anggota.
+   * Aturan Keamanan:
+   * - Hanya Admin yang berhak memicu penghapusan.
+   * - Admin tidak dapat menghapus akunnya sendiri melalui alur ini untuk mencegah sistem tanpa admin.
+   */
   const handleOpenDeleteModal = (target: UserProfile) => {
     if (!userIsAdmin) return;
     if (profile?.id === target.id) return;
@@ -452,6 +499,9 @@ export const AnggotaView: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
+  /**
+   * Menutup modal konfirmasi hapus anggota dan membersihkan input kata sandi.
+   */
   const handleCloseDeleteModal = () => {
     if (deleteLoading) return;
     setIsDeleteModalOpen(false);
@@ -462,6 +512,14 @@ export const AnggotaView: React.FC = () => {
     setDeleteSuccess(null);
   };
 
+  /**
+   * Mengeksekusi penghapusan akun anggota secara permanen.
+   * Alur Verifikasi Keamanan:
+   * 1. Mengharuskan Admin mengetik kata sandi akunnya saat ini.
+   * 2. Memanggil `supabase.auth.signInWithPassword()` untuk memvalidasi kata sandi.
+   * 3. Jika valid, baris data anggota pada tabel `users_profile` dihapus.
+   * 4. Memperbarui daftar anggota dan menutup modal.
+   */
   const handleConfirmDeleteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberToDelete || !userIsAdmin) return;

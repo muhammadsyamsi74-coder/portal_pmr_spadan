@@ -449,17 +449,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="dashboard-container">
-      {/* 1A. GUEST BANNER */}
+      {/* 1A. GUEST BANNER (HERO SEBELUM LOGIN) */}
       {!user && (
         <div className="dash-guest-card">
           <div className="guest-left">
-            <div className="guest-badge-pill">
-              <ShieldAlert style={{ width: 13, height: 13 }} /> Portal Anggota PMR SPADAN
+            <div className="guest-brand-row">
+              <div className="guest-logos-mini">
+                <img
+                  src="https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/profil-anggota/LOGO%20PMI%20untuk%20aplikasi.png"
+                  alt="Logo PMI"
+                  className="guest-logo-item"
+                />
+                <img
+                  src="https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/LOGO%20SMP%20NEGERI%208%20BALIKPAPAN%20-%20untuk%20website.png"
+                  alt="Logo SMPN 8 Balikpapan"
+                  className="guest-logo-item"
+                />
+              </div>
+              <div className="guest-badge-pill">
+                <span className="guest-live-dot" />
+                <span>Portal Resmi PMR SPADAN</span>
+              </div>
             </div>
             <h2>Bergabung Bersama Relawan Muda</h2>
             <p className="guest-desc">
               Masuk ke akun Anda untuk mencatat presensi tugas, mengecek kartu anggota resmi, dan melihat jadwal kegiatan internal.
             </p>
+            <div className="guest-features-row">
+              <span className="guest-feat-chip">📋 Presensi Digital</span>
+              <span className="guest-feat-chip">💳 KTA Resmi</span>
+              <span className="guest-feat-chip">📅 Agenda PMR</span>
+            </div>
           </div>
           <div className="guest-right">
             <button
@@ -467,7 +487,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className="btn-guest-action btn-guest-login"
               onClick={openLoginModal}
             >
-              <LogIn style={{ width: 15, height: 15 }} />
+              <LogIn style={{ width: 16, height: 16 }} />
               <span>Masuk Akun</span>
             </button>
             <button
@@ -475,7 +495,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className="btn-guest-action btn-guest-reg"
               onClick={openRegisterModal}
             >
-              <UserPlus style={{ width: 15, height: 15 }} />
+              <UserPlus style={{ width: 16, height: 16 }} />
               <span>Daftar Relawan</span>
             </button>
           </div>

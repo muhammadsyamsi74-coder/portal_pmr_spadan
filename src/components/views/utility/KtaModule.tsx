@@ -21,14 +21,38 @@ import {
 } from 'lucide-react';
 import { formatTanggalIndo, isAdmin } from '../../../utils/security';
 
+/**
+ * ============================================================================
+ * MODUL CETAK KARTU TANDA ANGGOTA (KTA) DIGITAL (KTAMODULE.TSX)
+ * ============================================================================
+ * Modul ini menangani generasi dan pencetakan Kartu Tanda Anggota resmi:
+ * 1. Format Fisik Standar CR-80 Portrait (54 mm x 86 mm) sesuai standar kartu ID nasional.
+ * 2. Visual Tema Ganda:
+ *    - Tema Merah Palang Merah untuk Anggota Aktif PMR SPADAN.
+ *    - Tema Biru Emas untuk Korps Alumni PMR SPADAN.
+ * 3. Fitur Sisi Depan:
+ *    - Kop resmi (Logo PMI & Logo SMPN 8 Balikpapan).
+ *    - Foto profil anggota dengan bingkai emas.
+ *    - Data identitas: Nama, NISN, Golongan Darah + Rhesus, Unit Satuan.
+ * 4. Fitur Sisi Belakang:
+ *    - Kode QR verifikasi keaslian anggota berisi enkripsi teks identitas.
+ *    - Teks resmi Tri Bakti Palang Merah Remaja.
+ *    - Lembar pengesahan dan tanda tangan Pembina PMR.
+ * 5. Mesin Cetak Kustom (`handlePrintCard`):
+ *    - Mengkloning elemen DOM kartu ke kontainer print khusus `#print-area-container`.
+ *    - Menghilangkan elemen navigasi dan antarmuka web sehingga hasil cetak bersih dan presisi.
+ */
 export const KtaModule: React.FC = () => {
   const { profile } = useAuth();
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
+  
+  // Kontrol tampilan pratinjau: 'both' (keduanya), 'front' (sisi depan saja), 'back' (sisi belakang saja)
   const [cardSideView, setCardSideView] = useState<'both' | 'front' | 'back'>('both');
 
+  // URL aset logo resmi PMI dan SMPN 8 Balikpapan di Supabase Storage
   const logoPmiUrl = 'https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/profil-anggota/LOGO%20PMI%20untuk%20aplikasi.png';
   const logoSmpn8Url = 'https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/LOGO%20SMP%20NEGERI%208%20BALIKPAPAN%20-%20untuk%20website.png';
 
@@ -37,6 +61,11 @@ export const KtaModule: React.FC = () => {
   useEffect(() => {
     if (!profile) return;
 
+    /**
+     * Memuat daftar anggota yang berhak memiliki KTA:
+     * - Jika Admin: Memuat seluruh anggota aktif dan alumni untuk keperluan pencetakan massal.
+     * - Jika Anggota Biasa: Hanya memuat kartu miliknya sendiri untuk menjaga privasi kartu orang lain.
+     */
     const loadMembers = async () => {
       setLoading(true);
       try {
@@ -52,7 +81,7 @@ export const KtaModule: React.FC = () => {
           return ket !== 'non-aktif' && jab !== 'non-aktif';
         });
 
-        // If ordinary member, only show own KTA
+        // Batasi anggota biasa hanya melihat KTA miliknya sendiri
         if (!userIsAdmin && profile) {
           setMembers(valid.filter(u => u.id === profile.id));
         } else {
@@ -68,7 +97,7 @@ export const KtaModule: React.FC = () => {
     loadMembers();
   }, [profile, userIsAdmin]);
 
-  // Access validation
+  // Validasi Hak Akses: Pengguna wajib login untuk melihat KTA
   if (!profile) {
     return (
       <div className="kta-restricted-box">
@@ -81,6 +110,7 @@ export const KtaModule: React.FC = () => {
     );
   }
 
+  // Validasi Status Akun: Akun non-aktif menunggu aktivasi pembina
   const role = (profile.jabatan || '').toLowerCase();
   const ket = (profile.keterangan_jabatan || '').toLowerCase();
   if (role === 'non-aktif' || ket === 'non-aktif') {
@@ -95,12 +125,21 @@ export const KtaModule: React.FC = () => {
     );
   }
 
+  /**
+   * Menangani Pencetakan Kartu ke Mesin Cetak / PDF:
+   * Alur Kerja:
+   * 1. Mengambil referensi elemen DOM kartu depan (`#card-front-{userId}`) dan/atau kartu belakang (`#card-back-{userId}`).
+   * 2. Membuat elemen kontainer `#print-area-container` terisolasi di akhir dokumen `<body>`.
+   * 3. Mengkloning elemen kartu ke kontainer cetak tanpa efek hover atau transform.
+   * 4. Memanggil `window.print()` untuk membuka dialog cetak browser.
+   * 5. Membersihkan kembali kontainer sementara dari DOM setelah pencetakan selesai.
+   */
   const handlePrintCard = (userId: string, side: 'both' | 'front' | 'back' = 'both') => {
     const frontEl = document.getElementById(`card-front-${userId}`);
     const backEl = document.getElementById(`card-back-${userId}`);
     if (!frontEl && !backEl) return;
 
-    // Create a dedicated print frame container
+    // Bersihkan kontainer cetak lama jika masih ada
     const existingPrintContainer = document.getElementById('print-area-container');
     if (existingPrintContainer) {
       existingPrintContainer.remove();
@@ -109,12 +148,14 @@ export const KtaModule: React.FC = () => {
     const printContainer = document.createElement('div');
     printContainer.id = 'print-area-container';
 
+    // Sisipkan sisi depan jika dipilih
     if ((side === 'both' || side === 'front') && frontEl) {
       const cloneFront = frontEl.cloneNode(true) as HTMLElement;
       cloneFront.style.transform = 'none';
       printContainer.appendChild(cloneFront);
     }
 
+    // Sisipkan sisi belakang jika dipilih
     if ((side === 'both' || side === 'back') && backEl) {
       const cloneBack = backEl.cloneNode(true) as HTMLElement;
       cloneBack.style.transform = 'none';
@@ -125,6 +166,7 @@ export const KtaModule: React.FC = () => {
 
     window.print();
 
+    // Hapus kontainer cetak setelah dialog cetak tertutup
     setTimeout(() => {
       if (document.body.contains(printContainer)) {
         document.body.removeChild(printContainer);

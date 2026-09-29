@@ -148,8 +148,15 @@ export function formatTanggalSimple(tglStr: string | null | undefined): string {
 
 /* ==============================================================================
    HAK AKSES / RBAC (ROLE-BASED ACCESS CONTROL)
+   ==============================================================================
+   Fungsi-fungsi pembantu di bawah ini memverifikasi peran dan hak akses pengguna
+   berdasarkan kolom `jabatan` dan `keterangan_jabatan` pada tabel `users_profile`.
    ============================================================================== */
 
+/**
+ * Memeriksa apakah pengguna memiliki status akun 'Non-Aktif'.
+ * Akun non-aktif dibekukan dan tidak dapat melakukan aktivitas manajemen.
+ */
 export function isNonAktif(profile: UserProfile | null): boolean {
   if (!profile) return false;
   const role = (profile.jabatan || '').toLowerCase();
@@ -157,6 +164,10 @@ export function isNonAktif(profile: UserProfile | null): boolean {
   return role === 'non-aktif' || ket === 'non-aktif';
 }
 
+/**
+ * Memeriksa apakah pengguna memiliki peran Admin tertinggi (Admin, Pembina, Kepala Sekolah).
+ * Admin memiliki wewenang penuh termasuk menghapus data anggota dan konfigurasi sistem.
+ */
 export function isAdmin(profile: UserProfile | null): boolean {
   if (!profile || isNonAktif(profile)) return false;
   const role = (profile.jabatan || '').toLowerCase();
@@ -164,6 +175,10 @@ export function isAdmin(profile: UserProfile | null): boolean {
   return role === 'admin' || ket.includes('pembina') || ket.includes('kepala sekolah');
 }
 
+/**
+ * Memeriksa apakah pengguna adalah jajaran Pengurus PMR (Admin, Pelatih, Ketua, Wakil, Sekretaris, Bendahara).
+ * Pengurus berwenang mengelola presensi harian, agenda kegiatan, dan inventaris UKS.
+ */
 export function isPengurus(profile: UserProfile | null): boolean {
   if (!profile || isNonAktif(profile)) return false;
   const role = (profile.jabatan || '').toLowerCase();
@@ -179,6 +194,10 @@ export function isPengurus(profile: UserProfile | null): boolean {
   );
 }
 
+/**
+ * Memeriksa apakah pengguna merupakan bagian dari Korps Alumni PMR SPADAN.
+ * Alumni memiliki akses baca arsip, KTA alumni, dan dashboard namun dibatasi dari pengelolaan data aktif.
+ */
 export function isAlumni(profile: UserProfile | null): boolean {
   if (!profile) return false;
   const role = (profile.jabatan || '').toLowerCase();
@@ -186,36 +205,56 @@ export function isAlumni(profile: UserProfile | null): boolean {
   return ket.includes('alumni') || role.includes('alumni');
 }
 
+/**
+ * Memeriksa apakah pengguna diizinkan mengelola data anggota (tambah, edit, verifikasi).
+ * Syarat: Pengurus/Pembina/Admin, dan bukan alumni atau non-aktif.
+ */
 export function canManageMembers(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (isAlumni(profile) || isNonAktif(profile)) return false;
   return isPengurus(profile);
 }
 
+/**
+ * Memeriksa apakah pengguna berhak membuka sesi presensi, mencatat kehadiran, serta mengedit presensi.
+ */
 export function canManagePresensi(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (isAlumni(profile) || isNonAktif(profile)) return false;
   return isPengurus(profile);
 }
 
+/**
+ * Memeriksa apakah pengguna berhak membuat, mengedit, atau menghapus jadwal agenda kegiatan pada kalender.
+ */
 export function canManageAgenda(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (isAlumni(profile) || isNonAktif(profile)) return false;
   return isPengurus(profile);
 }
 
+/**
+ * Memeriksa apakah pengguna berhak menambah atau memperbarui berkas modul materi PMR.
+ */
 export function canManageMateri(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (isAlumni(profile) || isNonAktif(profile)) return false;
   return isPengurus(profile);
 }
 
+/**
+ * Memeriksa apakah pengguna berhak mengakses modul pelaporan dan ekspor rekapitulasi data organisasi.
+ */
 export function canAccessReporting(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (isAlumni(profile) || isNonAktif(profile)) return false;
   return true; // Anggota aktif, pengurus, dan admin boleh akses
 }
 
+/**
+ * Memeriksa apakah pengguna berhak melihat dan mencetak KTA (Kartu Tanda Anggota) digital.
+ * Diizinkan untuk Anggota Aktif dan Korps Alumni.
+ */
 export function canAccessKTA(profile: UserProfile | null): boolean {
   if (!profile) return false;
   return !isNonAktif(profile); // Alumni dan anggota aktif boleh cetak KTA

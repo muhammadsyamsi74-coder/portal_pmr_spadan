@@ -18,29 +18,53 @@ import {
 } from 'lucide-react';
 import { canManageAgenda, sanitizeText } from '../../../utils/security';
 
+/**
+ * ============================================================================
+ * MODUL KALENDER & AGENDA KEGIATAN PMR (KALENDERMODULE.TSX)
+ * ============================================================================
+ * Modul ini menyediakan sistem manajemen jadwal kegiatan organisasi PMR SPADAN:
+ * 1. Mini Kalender Bulanan Interaktif:
+ *    - Penanda titik warna kegiatan pada tanggal yang memiliki jadwal.
+ *    - Indikator hari ini, seleksi tanggal spesifik, dan navigasi bulan/tahun.
+ * 2. Daftar Kartu Agenda Terstruktur:
+ *    - Tata letak kisi desktop responsif (`minmax(320px, 1fr)`).
+ *    - Desain tiket visual dengan badge tanggal, prioritas (Mendesak, Tinggi, Normal), dan kategori.
+ *    - Informasi waktu, lokasi, dan deskripsi kegiatan.
+ * 3. Tambah Agenda Kegiatan Baru:
+ *    - Formulir penambahan agenda resmi terintegrasi dengan opsi tampilkan banner di dashboard.
+ * 4. Hapus Agenda:
+ *    - Modal konfirmasi aman dengan ikon peringatan visual untuk mencegah ketidaksengajaan klik.
+ */
+
 interface KalenderModuleProps {
   onClose?: () => void;
 }
 
 export const KalenderModule: React.FC<KalenderModuleProps> = () => {
   const { profile } = useAuth();
+  
+  // Data master agenda kegiatan dari tabel `agenda_kegiatan`
   const [agendas, setAgendas] = useState<AgendaKegiatan[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Tanggal bulan yang sedang ditampilkan pada kalender (default: bulan & tahun sekarang)
   const [calendarDate, setCalendarDate] = useState(new Date());
+  
+  // Tanggal yang sedang diklik/dipilih oleh pengguna (format 'YYYY-MM-DD')
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
-  // Delete Confirmation Modal State
+  // State Modal Konfirmasi Hapus Agenda
   const [agendaToDelete, setAgendaToDelete] = useState<AgendaKegiatan | null>(null);
   const [isDeletingAgenda, setIsDeletingAgenda] = useState(false);
 
-  // Toast State
+  // State Pesan Toast Notifikasi Inline
   const [toastMsg, setToastMsg] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToastMsg({ message, type });
     setTimeout(() => setToastMsg(null), 4000);
   };
 
-  // Add Agenda Modal
+  // State Formulir Tambah Agenda Baru
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [judul, setJudul] = useState('');
   const [kategori, setKategori] = useState('Latihan Rutin');
@@ -53,6 +77,7 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
   const [tampilkanDashboard, setTampilkanDashboard] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Hak akses: Pengurus, Pembina, dan Admin berhak menambah & menghapus jadwal agenda
   const canManage = canManageAgenda(profile);
 
   const loadAgendas = async () => {
