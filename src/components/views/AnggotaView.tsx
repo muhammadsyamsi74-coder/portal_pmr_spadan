@@ -31,6 +31,7 @@ import {
 import {
   isAdmin,
   isPengurus,
+  isAlumni,
   canManageMembers,
   validateImageFile,
   compressImage,
@@ -108,6 +109,10 @@ export const AnggotaView: React.FC = () => {
 
   const canManage = canManageMembers(profile);
   const userIsAdmin = isAdmin(profile);
+  const isGuest = !profile;
+  const isViewerAlumni = isAlumni(profile);
+  // Sembunyikan informasi jabatan admin untuk Guest dan Alumni
+  const hideAdminInfo = isGuest || isViewerAlumni;
 
   // Aturan hak akses tombol WhatsApp:
   // Hanya muncul bagi:
@@ -516,8 +521,13 @@ export const AnggotaView: React.FC = () => {
           let roleBadgeClass = 'badge-anggota';
           let roleBadgeLabel = item.jabatan || 'Anggota';
           if (item.jabatan === 'admin') {
-            roleBadgeClass = 'badge-admin';
-            roleBadgeLabel = 'Admin';
+            if (hideAdminInfo) {
+              roleBadgeClass = 'badge-pengurus';
+              roleBadgeLabel = 'Pengurus';
+            } else {
+              roleBadgeClass = 'badge-admin';
+              roleBadgeLabel = 'Admin';
+            }
           } else if (item.jabatan === 'pengurus') {
             roleBadgeClass = 'badge-pengurus';
             roleBadgeLabel = 'Pengurus';
@@ -543,14 +553,40 @@ export const AnggotaView: React.FC = () => {
           const waLink = formatWa(item.no_wa_pribadi);
           const waOrtuLink = formatWa(item.no_wa_ortu);
 
-          const isAlumni = (item.keterangan_jabatan || '').toLowerCase() === 'alumni';
+          const isAlumniMember = (item.keterangan_jabatan || '').toLowerCase() === 'alumni';
           const isNonAktif = item.jabatan === 'non-aktif' || (item.keterangan_jabatan || '').toLowerCase() === 'non-aktif';
-          const dotType = isNonAktif ? 'nonaktif' : (isAlumni ? 'alumni' : (item.jabatan === 'non-aktif' ? 'usulan' : 'aktif'));
+          const dotType = isNonAktif ? 'nonaktif' : (isAlumniMember ? 'alumni' : (item.jabatan === 'non-aktif' ? 'usulan' : 'aktif'));
+          const dotTitle = hideAdminInfo && item.jabatan === 'admin'
+            ? 'Status: Pengurus'
+            : `Status: ${item.jabatan || 'aktif'}`;
 
           // Hak akses WhatsApp Pribadi (viewer berhak & target aktif)
-          const showWaPribadi = canViewWhatsapp && !isAlumni && !isNonAktif;
+          const showWaPribadi = canViewWhatsapp && !isAlumniMember && !isNonAktif;
           // Hak akses nomor WA Orang Tua: HANYA admin (kepsek, pembina) & pelatih
-          const showWaOrtu = canViewWaOrtu && !isAlumni && !isNonAktif;
+          const showWaOrtu = canViewWaOrtu && !isAlumniMember && !isNonAktif;
+
+          // 2. Hak akses Riwayat Penyakit (Medis / Alergi):
+          // Disembunyikan untuk Guest, Alumni, dan anggota biasa lainnya.
+          // Hanya dapat dilihat oleh diri sendiri (isMe) atau pengurus/pembina/admin (canManage)
+          const showRiwayatPenyakit = isMe || (!isGuest && !isViewerAlumni && canManage);
+
+          // 3. Hak akses Tanggal Lahir:
+          // Disembunyikan untuk Guest, Alumni, dan anggota lainnya (sesama anggota tidak boleh melihat tanggal lahir).
+          // Hanya dapat dilihat oleh diri sendiri (isMe) atau pengurus/pembina/admin (canManage)
+          const showTanggalLahir = isMe || (!isGuest && !isViewerAlumni && canManage);
+
+          // Keterangan jabatan (samarkan kata 'admin' untuk Guest & Alumni)
+          const posText = (() => {
+            if (!item.keterangan_jabatan) return null;
+            const rawKet = item.keterangan_jabatan.trim();
+            if (hideAdminInfo && rawKet.toLowerCase().includes('admin')) {
+              return 'Pengurus';
+            }
+            if (rawKet.toLowerCase() === roleBadgeLabel.toLowerCase()) {
+              return null;
+            }
+            return rawKet;
+          })();
 
           return (
             <div key={item.id} className={`member-interactive-card ${isExpanded ? 'card-expanded' : ''}`}>
@@ -578,7 +614,7 @@ export const AnggotaView: React.FC = () => {
                       {(item.nama_panggilan || item.nama_lengkap || '?').charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className={`card-status-dot dot-${dotType}`} title={`Status: ${item.jabatan || 'aktif'}`} />
+                  <span className={`card-status-dot dot-${dotType}`} title={dotTitle} />
                 </div>
 
                 <div className="card-main-info">
@@ -597,11 +633,10 @@ export const AnggotaView: React.FC = () => {
                   </div>
 
                   <div className="card-tags-row">
-                    {item.keterangan_jabatan &&
-                      item.keterangan_jabatan.trim().toLowerCase() !== roleBadgeLabel.toLowerCase() && (
-                        <span className="card-position-text">
-                          {item.keterangan_jabatan}
-                        </span>
+                    {posText && (
+                      <span className="card-position-text">
+                        {posText}
+                      </span>
                     )}
                     <span className={`badge-role ${roleBadgeClass}`}>
                       {roleBadgeLabel}
@@ -627,10 +662,12 @@ export const AnggotaView: React.FC = () => {
                       <span className="detail-label">Jenis Kelamin</span>
                       <span className="detail-value">{item.jenis_kelamin || '-'}</span>
                     </div>
-                    <div className="detail-field">
-                      <span className="detail-label">Tanggal Lahir</span>
-                      <span className="detail-value">{item.tanggal_lahir || '-'}</span>
-                    </div>
+                    {showTanggalLahir && (
+                      <div className="detail-field">
+                        <span className="detail-label">Tanggal Lahir</span>
+                        <span className="detail-value">{item.tanggal_lahir || '-'}</span>
+                      </div>
+                    )}
                     <div className="detail-field">
                       <span className="detail-label">Gol. Darah</span>
                       <span className="detail-value">
@@ -639,7 +676,7 @@ export const AnggotaView: React.FC = () => {
                     </div>
                   </div>
 
-                  {item.riwayat_penyakit && (
+                  {showRiwayatPenyakit && item.riwayat_penyakit && (
                     <div className="detail-alert-box">
                       <span className="alert-title">⚠️ Riwayat Medis / Alergi:</span>
                       <span className="alert-desc">{item.riwayat_penyakit}</span>
@@ -777,6 +814,14 @@ export const AnggotaView: React.FC = () => {
   });
 
   const renderStructureCard = (u: UserProfile) => {
+    const displayRole = (() => {
+      const raw = u.keterangan_jabatan || 'Anggota';
+      if (hideAdminInfo && raw.toLowerCase().includes('admin')) {
+        return 'Pengurus';
+      }
+      return raw;
+    })();
+
     return (
       <div key={u.id} className="org-card-portrait">
         {/* PORTRAIT PHOTO BANNER / FRAME */}
@@ -799,7 +844,7 @@ export const AnggotaView: React.FC = () => {
           )}
 
           <div className="org-portrait-role-badge">
-            {u.keterangan_jabatan || 'Anggota'}
+            {displayRole}
           </div>
         </div>
 
