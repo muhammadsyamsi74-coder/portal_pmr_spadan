@@ -21,7 +21,12 @@ import {
   ChevronUp,
   X,
   MessageSquare,
-  Phone
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import {
   isAdmin,
@@ -34,11 +39,20 @@ import {
 import { PhotoViewerModal } from '../modals/PhotoViewerModal';
 
 export const AnggotaView: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
 
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Delete Member Confirmation with Password Verification Modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<UserProfile | null>(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
   // Filters & Views
   const [searchQuery, setSearchQuery] = useState('');
@@ -421,23 +435,72 @@ export const AnggotaView: React.FC = () => {
     }
   };
 
-  // Delete Member
-  const handleDeleteMember = async (targetId: string, targetName: string) => {
+  // Delete Member Confirmation Handlers
+  const handleOpenDeleteModal = (target: UserProfile) => {
     if (!userIsAdmin) return;
-    if (profile?.id === targetId) {
+    if (profile?.id === target.id) return;
+    setMemberToDelete(target);
+    setAdminPasswordInput('');
+    setShowAdminPassword(false);
+    setDeleteError(null);
+    setDeleteSuccess(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (deleteLoading) return;
+    setIsDeleteModalOpen(false);
+    setMemberToDelete(null);
+    setAdminPasswordInput('');
+    setShowAdminPassword(false);
+    setDeleteError(null);
+    setDeleteSuccess(null);
+  };
+
+  const handleConfirmDeleteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!memberToDelete || !userIsAdmin) return;
+
+    if (!adminPasswordInput.trim()) {
+      setDeleteError('Harap masukkan kata sandi akun Anda untuk konfirmasi keamanan.');
       return;
     }
 
+    setDeleteLoading(true);
+    setDeleteError(null);
+
     try {
+      // 1. Verifikasi Kata Sandi Admin melalui Supabase Auth
+      const adminEmail = user?.email || profile?.email;
+      if (adminEmail) {
+        const { error: authErr } = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: adminPasswordInput
+        });
+
+        if (authErr) {
+          throw new Error('Kata sandi yang Anda masukkan salah. Penghapusan dibatalkan demi keamanan.');
+        }
+      }
+
+      // 2. Hapus data profil anggota dari database
       const { error: delErr } = await supabase
         .from('users_profile')
         .delete()
-        .eq('id', targetId);
+        .eq('id', memberToDelete.id);
 
       if (delErr) throw delErr;
+
+      setDeleteSuccess(`Akun anggota "${memberToDelete.nama_lengkap}" berhasil dihapus.`);
       await fetchMembers();
+
+      setTimeout(() => {
+        handleCloseDeleteModal();
+      }, 1000);
     } catch (err: any) {
-      console.error('Gagal menghapus anggota:', err);
+      setDeleteError(err.message || 'Gagal memverifikasi kata sandi atau menghapus anggota.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -673,7 +736,7 @@ export const AnggotaView: React.FC = () => {
                     <button
                       type="button"
                       className="btn-member-icon btn-hapus"
-                      onClick={() => handleDeleteMember(item.id, item.nama_lengkap)}
+                      onClick={() => handleOpenDeleteModal(item)}
                       title="Hapus Anggota"
                       aria-label="Hapus Anggota"
                     >
@@ -1323,6 +1386,145 @@ export const AnggotaView: React.FC = () => {
                   disabled={modalSubmitting}
                 >
                   {modalSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VERIFIKASI KEAMANAN HAPUS ANGGOTA (DENGAN PASSWORD ADMIN) */}
+      {isDeleteModalOpen && memberToDelete && (
+        <div className="app-modal-backdrop" onClick={handleCloseDeleteModal}>
+          <div
+            className="delete-confirm-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER */}
+            <div className="delete-modal-header">
+              <div className="delete-modal-header-title">
+                <div className="delete-modal-warning-icon">
+                  <ShieldAlert style={{ width: 22, height: 22, color: '#ffffff' }} />
+                </div>
+                <div>
+                  <h3>Konfirmasi Hapus Akun</h3>
+                  <p>Verifikasi kata sandi admin diperlukan</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="app-modal-close"
+                onClick={handleCloseDeleteModal}
+                disabled={deleteLoading}
+                aria-label="Tutup"
+              >
+                <X style={{ width: 20, height: 20 }} />
+              </button>
+            </div>
+
+            {/* FORM BODY */}
+            <form onSubmit={handleConfirmDeleteMember}>
+              <div className="delete-modal-body">
+                {/* TARGET ANGGOTA PREVIEW */}
+                <div className="delete-target-preview">
+                  <div className="delete-target-avatar">
+                    {memberToDelete.foto_profil_url ? (
+                      <img src={memberToDelete.foto_profil_url} alt={memberToDelete.nama_lengkap} />
+                    ) : (
+                      <UserIcon style={{ width: 26, height: 26, color: '#94a3b8' }} />
+                    )}
+                  </div>
+                  <div className="delete-target-meta">
+                    <div className="delete-target-name">{memberToDelete.nama_lengkap}</div>
+                    <div className="delete-target-sub">
+                      <span className="delete-target-role-badge">
+                        {memberToDelete.keterangan_jabatan || memberToDelete.jabatan || 'Anggota'}
+                      </span>
+                      {memberToDelete.kelas && <span>Kelas {memberToDelete.kelas}</span>}
+                      {memberToDelete.nisn && <span className="delete-target-nisn">NISN: {memberToDelete.nisn}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* WARNING NOTICE */}
+                <div className="delete-warning-banner">
+                  <AlertTriangle style={{ width: 18, height: 18, flexShrink: 0, marginTop: 1 }} />
+                  <span>
+                    <strong>Peringatan:</strong> Akun ini akan dihapus secara permanen beserta data identitasnya dari sistem. Tindakan ini tidak dapat dibatalkan.
+                  </span>
+                </div>
+
+                {/* PASSWORD VERIFICATION INPUT */}
+                <div className="delete-pwd-group">
+                  <label className="delete-pwd-label">
+                    Masukkan Kata Sandi Akun Anda ({user?.email || profile?.nama_lengkap}):
+                  </label>
+                  <span className="delete-pwd-desc">
+                    Ketik kata sandi akun login Anda untuk mengonfirmasi bahwa Anda berhak menghapus akun ini.
+                  </span>
+                  <div className="delete-pwd-input-wrap">
+                    <input
+                      type={showAdminPassword ? 'text' : 'password'}
+                      className="delete-pwd-input"
+                      placeholder="Masukkan kata sandi akun Anda..."
+                      value={adminPasswordInput}
+                      onChange={(e) => {
+                        setAdminPasswordInput(e.target.value);
+                        if (deleteError) setDeleteError(null);
+                      }}
+                      disabled={deleteLoading}
+                      autoFocus
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-toggle-pwd-visibility"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      tabIndex={-1}
+                      title={showAdminPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
+                    >
+                      {showAdminPassword ? (
+                        <EyeOff style={{ width: 17, height: 17 }} />
+                      ) : (
+                        <Eye style={{ width: 17, height: 17 }} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ERROR & SUCCESS MESSAGES */}
+                {deleteError && (
+                  <div className="delete-modal-error">
+                    <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0 }} />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
+
+                {deleteSuccess && (
+                  <div className="delete-modal-success">
+                    <CheckCircle2 style={{ width: 15, height: 15, flexShrink: 0 }} />
+                    <span>{deleteSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* FOOTER ACTIONS */}
+              <div className="delete-modal-footer">
+                <button
+                  type="button"
+                  className="btn-delete-cancel"
+                  onClick={handleCloseDeleteModal}
+                  disabled={deleteLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn-delete-confirm"
+                  disabled={deleteLoading || !adminPasswordInput.trim()}
+                >
+                  <Trash2 style={{ width: 15, height: 15 }} />
+                  <span>{deleteLoading ? 'Memverifikasi...' : 'Verifikasi & Hapus Akun'}</span>
                 </button>
               </div>
             </form>

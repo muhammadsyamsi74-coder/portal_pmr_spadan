@@ -23,7 +23,8 @@ import {
   X,
   FileText,
   Sparkles,
-  Upload
+  Upload,
+  AlertTriangle
 } from 'lucide-react';
 import {
   canManagePresensi,
@@ -78,11 +79,26 @@ export const PresensiView: React.FC = () => {
   const [modalFilterStatus, setModalFilterStatus] = useState<string>('Semua');
   const [modalSearch, setModalSearch] = useState('');
 
+  // Delete Confirmation Modal State
+  const [sessionToDelete, setSessionToDelete] = useState<PresensiSessionSummary | null>(null);
+  const [isDeletingSession, setIsDeletingSession] = useState(false);
+
+  // Toast Banner State
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setFeedbackToast({ message, type });
+    setTimeout(() => {
+      setFeedbackToast(null);
+    }, 4500);
+  };
+
   // Photo Zoom State
   const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
 
   const canManage = canManagePresensi(profile);
   const userIsAdmin = isAdmin(profile);
+  const canDelete = userIsAdmin || canManage;
 
   // 1. Load active members for attendance roster
   useEffect(() => {
@@ -215,14 +231,12 @@ export const PresensiView: React.FC = () => {
   };
 
   const handleClearAllPhotos = () => {
-    if (window.confirm('Hapus semua foto dokumentasi yang telah dipilih?')) {
-      currentPhotos.forEach(target => {
-        if (target.type === 'existing' && target.url) {
-          setPhotosPendingDelete(prev => [...prev, target.url!]);
-        }
-      });
-      setCurrentPhotos([]);
-    }
+    currentPhotos.forEach(target => {
+      if (target.type === 'existing' && target.url) {
+        setPhotosPendingDelete(prev => [...prev, target.url!]);
+      }
+    });
+    setCurrentPhotos([]);
   };
 
   // Reset Form
@@ -323,7 +337,7 @@ export const PresensiView: React.FC = () => {
       const { error: insErr } = await supabase.from('presensi').insert(insertPayload);
       if (insErr) throw insErr;
 
-      alert(editSessionId ? 'Presensi kegiatan berhasil diperbarui!' : 'Presensi kegiatan berhasil disimpan!');
+      showToast(editSessionId ? 'Presensi kegiatan berhasil diperbarui!' : 'Presensi kegiatan berhasil disimpan!', 'success');
       resetForm();
       await fetchHistory();
     } catch (err: any) {
@@ -373,13 +387,14 @@ export const PresensiView: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Delete session
-  const handleDeleteSession = async (sessionId: string) => {
-    if (!userIsAdmin) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus seluruh rekaman kegiatan ini?')) return;
+  // Delete session with modal confirmation
+  const handleConfirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    if (!canDelete) return;
 
+    setIsDeletingSession(true);
     try {
-      const sesi = sessions.find(s => s.sesi_id === sessionId);
+      const sesi = sessionToDelete;
       if (sesi && sesi.foto_dokumentasi_url) {
         try {
           const parsed = JSON.parse(sesi.foto_dokumentasi_url);
@@ -400,13 +415,19 @@ export const PresensiView: React.FC = () => {
         }
       }
 
-      const { error: delErr } = await supabase.from('presensi').delete().eq('sesi_id', sessionId);
+      const { error: delErr } = await supabase.from('presensi').delete().eq('sesi_id', sessionToDelete.sesi_id);
       if (delErr) throw delErr;
 
-      alert('Presensi kegiatan berhasil dihapus.');
+      showToast('Presensi kegiatan berhasil dihapus.', 'success');
+      setSessionToDelete(null);
+      if (detailSession?.sesi_id === sessionToDelete.sesi_id) {
+        setDetailSession(null);
+      }
       await fetchHistory();
     } catch (err: any) {
-      alert('Gagal menghapus: ' + err.message);
+      showToast('Gagal menghapus presensi: ' + err.message, 'error');
+    } finally {
+      setIsDeletingSession(false);
     }
   };
 
@@ -834,6 +855,20 @@ export const PresensiView: React.FC = () => {
       {/* 3. RIWAYAT PRESENSI KEGIATAN */}
       {profile && (
         <div className="section-history-presensi">
+          {/* TOAST BANNER */}
+          {feedbackToast && (
+            <div className={`presensi-toast-banner ${feedbackToast.type}`}>
+              <span>{feedbackToast.message}</span>
+              <button
+                type="button"
+                onClick={() => setFeedbackToast(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 800 }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="dash-card-header" style={{ padding: '0 4px', marginBottom: 12 }}>
             <div className="header-title">
               <div className="icon-pulse-wrap theme-presence">
@@ -915,8 +950,11 @@ export const PresensiView: React.FC = () => {
                     setFilterTglAkhir('');
                     setFilterJenis('');
                   }}
+                  title="Reset Filter"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
-                  Reset
+                  <RotateCcw style={{ width: 12, height: 12 }} />
+                  <span>Reset</span>
                 </button>
               </div>
             </div>
@@ -1029,11 +1067,11 @@ export const PresensiView: React.FC = () => {
                           </button>
                         )}
 
-                        {userIsAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             className="btn-card-icon btn-hapus"
-                            onClick={() => handleDeleteSession(sesi.sesi_id)}
+                            onClick={() => setSessionToDelete(sesi)}
                             title="Hapus rekaman presensi"
                             aria-label="Hapus Presensi"
                           >
@@ -1226,13 +1264,107 @@ export const PresensiView: React.FC = () => {
               </div>
             </div>
 
-            <div className="app-modal-footer">
+            <div className="app-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {canManage && (
+                  <button
+                    type="button"
+                    className="btn-modal-action-edit"
+                    onClick={() => {
+                      handleEditSession(detailSession.sesi_id);
+                      setDetailSession(null);
+                    }}
+                  >
+                    <Edit2 style={{ width: 13, height: 13 }} />
+                    <span>Edit Presensi</span>
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    type="button"
+                    className="btn-modal-action-del"
+                    onClick={() => {
+                      setSessionToDelete(detailSession);
+                    }}
+                  >
+                    <Trash2 style={{ width: 13, height: 13 }} />
+                    <span>Hapus Presensi</span>
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 className="btn-modal-cancel"
                 onClick={() => setDetailSession(null)}
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE PRESENSI CONFIRMATION MODAL */}
+      {sessionToDelete && (
+        <div className="app-modal-backdrop active" style={{ zIndex: 99999 }}>
+          <div className="app-modal-card" style={{ maxWidth: 460 }}>
+            <div className="app-modal-header" style={{ background: '#7f1d1d', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle style={{ width: 20, height: 20, color: '#fca5a5' }} />
+                <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>Konfirmasi Hapus Presensi</h3>
+              </div>
+              <button
+                type="button"
+                className="app-modal-close"
+                style={{ color: '#ffffff' }}
+                onClick={() => !isDeletingSession && setSessionToDelete(null)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="app-modal-body" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
+                Apakah Anda yakin ingin menghapus seluruh rekaman presensi kegiatan berikut?
+              </p>
+
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div><b style={{ color: '#0f172a', fontSize: 13 }}>{sessionToDelete.nama_kegiatan}</b></div>
+                <div style={{ color: '#64748b' }}>📅 {formatTanggalIndo(sessionToDelete.tanggal_kegiatan)} · 📍 {sessionToDelete.tempat_kegiatan}</div>
+                <div style={{ color: '#64748b' }}>👥 Total {sessionToDelete.records.length} Siswa Tercatat (Hadir: {sessionToDelete.hadir}, Izin: {sessionToDelete.izin}, Sakit: {sessionToDelete.sakit}, Alpa: {sessionToDelete.alpa})</div>
+              </div>
+
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 12px', fontSize: 11.5, color: '#991b1b', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertTriangle style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />
+                <span>Tindakan ini tidak dapat dibatalkan. Seluruh data kehadiran anggota dan foto dokumentasi kegiatan ini akan dihapus secara permanen.</span>
+              </div>
+            </div>
+
+            <div className="app-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px' }}>
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={() => setSessionToDelete(null)}
+                disabled={isDeletingSession}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn-modal-action-del"
+                style={{ background: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
+                onClick={handleConfirmDeleteSession}
+                disabled={isDeletingSession}
+              >
+                {isDeletingSession ? (
+                  <>
+                    <Loader2 className="spin-anim" style={{ width: 14, height: 14 }} /> Menghapus...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 style={{ width: 14, height: 14 }} /> Ya, Hapus Presensi
+                  </>
+                )}
               </button>
             </div>
           </div>

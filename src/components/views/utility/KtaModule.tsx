@@ -12,7 +12,12 @@ import {
   Sparkles,
   UserX,
   CheckCircle2,
-  QrCode
+  QrCode,
+  X,
+  CreditCard,
+  ShieldCheck,
+  Layers,
+  User
 } from 'lucide-react';
 import { formatTanggalIndo, isAdmin } from '../../../utils/security';
 
@@ -22,6 +27,7 @@ export const KtaModule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
+  const [cardSideView, setCardSideView] = useState<'both' | 'front' | 'back'>('both');
 
   const logoPmiUrl = 'https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/profil-anggota/LOGO%20PMI%20untuk%20aplikasi.png';
   const logoSmpn8Url = 'https://ndahxwqshyukqpnjkniw.supabase.co/storage/v1/object/public/utilitas_ikon/LOGO%20SMP%20NEGERI%208%20BALIKPAPAN%20-%20untuk%20website.png';
@@ -89,10 +95,10 @@ export const KtaModule: React.FC = () => {
     );
   }
 
-  const handlePrintCard = (userId: string) => {
+  const handlePrintCard = (userId: string, side: 'both' | 'front' | 'back' = 'both') => {
     const frontEl = document.getElementById(`card-front-${userId}`);
     const backEl = document.getElementById(`card-back-${userId}`);
-    if (!frontEl || !backEl) return;
+    if (!frontEl && !backEl) return;
 
     // Create a dedicated print frame container
     const existingPrintContainer = document.getElementById('print-area-container');
@@ -103,15 +109,18 @@ export const KtaModule: React.FC = () => {
     const printContainer = document.createElement('div');
     printContainer.id = 'print-area-container';
 
-    const cloneFront = frontEl.cloneNode(true) as HTMLElement;
-    const cloneBack = backEl.cloneNode(true) as HTMLElement;
+    if ((side === 'both' || side === 'front') && frontEl) {
+      const cloneFront = frontEl.cloneNode(true) as HTMLElement;
+      cloneFront.style.transform = 'none';
+      printContainer.appendChild(cloneFront);
+    }
 
-    // Remove any scaling transforms from clones for 100% true printing
-    cloneFront.style.transform = 'none';
-    cloneBack.style.transform = 'none';
+    if ((side === 'both' || side === 'back') && backEl) {
+      const cloneBack = backEl.cloneNode(true) as HTMLElement;
+      cloneBack.style.transform = 'none';
+      printContainer.appendChild(cloneBack);
+    }
 
-    printContainer.appendChild(cloneFront);
-    printContainer.appendChild(cloneBack);
     document.body.appendChild(printContainer);
 
     window.print();
@@ -183,9 +192,19 @@ export const KtaModule: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                className="btn-clear-search"
+                onClick={() => setSearchQuery('')}
+                title="Hapus pencarian"
+              >
+                <X style={{ width: 12, height: 12 }} />
+              </button>
+            )}
           </div>
 
-          <div className="toolbar-filter-box">
+          <div className="kta-filter-select-box">
             <Filter style={{ width: 14, height: 14, color: '#64748b' }} />
             <select
               value={kategoriFilter}
@@ -195,6 +214,36 @@ export const KtaModule: React.FC = () => {
               <option value="aktif">Anggota Aktif</option>
               <option value="alumni">Korps Alumni</option>
             </select>
+          </div>
+
+          <div className="kta-view-switch-group">
+            <button
+              type="button"
+              className={`btn-kta-view-chip ${cardSideView === 'both' ? 'active' : ''}`}
+              onClick={() => setCardSideView('both')}
+              title="Tampilkan Kedua Sisi (Depan & Belakang)"
+            >
+              <Layers style={{ width: 13, height: 13 }} />
+              <span>Sepasang</span>
+            </button>
+            <button
+              type="button"
+              className={`btn-kta-view-chip ${cardSideView === 'front' ? 'active' : ''}`}
+              onClick={() => setCardSideView('front')}
+              title="Tampilkan Sisi Depan Saja"
+            >
+              <CreditCard style={{ width: 13, height: 13 }} />
+              <span>Depan</span>
+            </button>
+            <button
+              type="button"
+              className={`btn-kta-view-chip ${cardSideView === 'back' ? 'active' : ''}`}
+              onClick={() => setCardSideView('back')}
+              title="Tampilkan Sisi Belakang Saja"
+            >
+              <ShieldCheck style={{ width: 13, height: 13 }} />
+              <span>Belakang</span>
+            </button>
           </div>
         </div>
       )}
@@ -234,15 +283,54 @@ export const KtaModule: React.FC = () => {
 
             return (
               <div key={userItem.id} className="kta-portrait-card-container">
+                {/* MEMBER HEADER BAR */}
+                <div className="kta-member-card-header">
+                  <div className="kta-member-identity-left">
+                    {hasPhoto ? (
+                      <img src={userItem.foto_profil_url!} alt={userItem.nama_lengkap} className="kta-avatar-mini" />
+                    ) : (
+                      <div className="kta-avatar-mini" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <User style={{ width: 18, height: 18, color: '#94a3b8' }} />
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div className="kta-member-name-text" title={userItem.nama_lengkap}>{userItem.nama_lengkap}</div>
+                      <div className="kta-member-meta-sub">
+                        Kelas {userItem.kelas || '-'} · NISN: {userItem.nisn || '-'}
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      background: isAlumni ? '#eef2ff' : '#ecfdf5',
+                      color: isAlumni ? '#3730a3' : '#065f46',
+                      border: `1px solid ${isAlumni ? '#c7d2fe' : '#a7f3d0'}`,
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      flexShrink: 0
+                    }}
+                  >
+                    {isAlumni ? 'KORPS ALUMNI' : 'ANGGOTA AKTIF'}
+                  </span>
+                </div>
+
                 <div className="card-pair-wrapper">
                   {/* ========================================================
                       KARTU SISI DEPAN (PORTRAIT CR-80)
                       ======================================================== */}
-                  <div className={`id-card-portrait id-card-front-portrait ${cardThemeClass}`} id={`card-front-${userItem.id}`}>
-                    {/* Background Security Wave Watermark */}
-                    <div className="card-bg-watermark">
-                      <div className="watermark-emblem">PMR</div>
-                    </div>
+                  {(cardSideView === 'both' || cardSideView === 'front') && (
+                    <div className="kta-side-block">
+                      <div className="kta-side-label">
+                        <CreditCard style={{ width: 11, height: 11, color: isAlumni ? '#4338ca' : '#be123c' }} />
+                        <span>Sisi Depan</span>
+                      </div>
+                      <div className={`id-card-portrait id-card-front-portrait ${cardThemeClass}`} id={`card-front-${userItem.id}`}>
+                        {/* Background Security Wave Watermark */}
+                        <div className="card-bg-watermark">
+                          <div className="watermark-emblem">PMR</div>
+                        </div>
 
                     {/* TOP HEADER */}
                     <div className="p-card-header">
@@ -254,8 +342,8 @@ export const KtaModule: React.FC = () => {
                           <img src={logoSmpn8Url} alt="Logo SMPN 8" />
                         </div>
                       </div>
-                      <div className="p-header-org">PALANG MERAH REMAJA</div>
-                      <div className="p-header-sub">{headerSub}</div>
+                      <div className="p-header-org">PALANG MERAH REMAJA (PMR) MADYA</div>
+                      <div className="p-header-sub">SMP NEGERI 8 BALIKPAPAN</div>
                       <div className="p-header-badge-row">
                         <span className="p-header-badge">{headerTitle}</span>
                       </div>
@@ -273,7 +361,7 @@ export const KtaModule: React.FC = () => {
                           />
                         ) : (
                           <div className="p-photo-placeholder">
-                            <UserX style={{ width: 30, height: 30, color: 'rgba(255,255,255,0.7)' }} />
+                            <UserX style={{ width: 32, height: 32, color: 'rgba(255,255,255,0.7)' }} />
                             <span>Foto Belum Ada</span>
                           </div>
                         )}
@@ -322,84 +410,117 @@ export const KtaModule: React.FC = () => {
                       <div className="p-footer-info">
                         <div className="p-verify-tag">
                           <CheckCircle2 style={{ width: 10, height: 10 }} />
-                          <span>TERVERIFIKASI RESMI</span>
+                          <span>TERVERIFIKASI</span>
                         </div>
                         <div className="p-footer-note">Pindai kode untuk mengecek status keanggotaan sah.</div>
                       </div>
                     </div>
                   </div>
+                    </div>
+                  )}
 
                   {/* ========================================================
                       KARTU SISI BELAKANG (PORTRAIT CR-80)
                       ======================================================== */}
-                  <div className={`id-card-portrait id-card-back-portrait ${cardThemeClass}`} id={`card-back-${userItem.id}`}>
-                    {/* Header Sisi Belakang */}
-                    <div className="p-back-header">
-                      <div className="p-back-logos">
-                        <img src={logoPmiUrl} alt="PMI" className="back-mini-logo" />
-                        <span className="back-header-title">TRI BAKTI PALANG MERAH REMAJA</span>
-                        <img src={logoSmpn8Url} alt="SMPN 8" className="back-mini-logo" />
+                  {(cardSideView === 'both' || cardSideView === 'back') && (
+                    <div className="kta-side-block">
+                      <div className="kta-side-label">
+                        <ShieldCheck style={{ width: 11, height: 11, color: isAlumni ? '#4338ca' : '#be123c' }} />
+                        <span>Sisi Belakang</span>
                       </div>
-                    </div>
+                      <div className={`id-card-portrait id-card-back-portrait ${cardThemeClass}`} id={`card-back-${userItem.id}`}>
+                        {/* Header Sisi Belakang */}
+                        <div className="p-back-header">
+                          <div className="p-back-logos">
+                            <img src={logoPmiUrl} alt="PMI" className="back-mini-logo" />
+                            <span className="back-header-title">TRI BAKTI PALANG MERAH REMAJA</span>
+                            <img src={logoSmpn8Url} alt="SMPN 8" className="back-mini-logo" />
+                          </div>
+                        </div>
 
-                    {/* Isi Tri Bakti */}
-                    <div className="p-back-body">
-                      <div className="p-tri-bakti-card">
-                        <ol className="p-tri-list">
-                          <li>
-                            <b>Meningkatkan</b> keterampilan hidup sehat.
-                          </li>
-                          <li>
-                            <b>Berkarya</b> dan berbakti di masyarakat.
-                          </li>
-                          <li>
-                            <b>Mempererat</b> persahabatan nasional dan internasional.
-                          </li>
-                        </ol>
-                      </div>
+                        {/* Isi Tri Bakti */}
+                        <div className="p-back-body">
+                          <div className="p-tri-bakti-card">
+                            <ol className="p-tri-list">
+                              <li>
+                                <b>Meningkatkan</b> keterampilan hidup sehat.
+                              </li>
+                              <li>
+                                <b>Berkarya</b> dan berbakti di masyarakat.
+                              </li>
+                              <li>
+                                <b>Mempererat</b> persahabatan nasional dan internasional.
+                              </li>
+                            </ol>
+                          </div>
 
-                      {/* 7 Prinsip */}
-                      <div className="p-prinsip-section">
-                        <div className="p-prinsip-heading">7 PRINSIP DASAR GERAKAN PM/BSM</div>
-                        <div className="p-prinsip-pills-grid">
-                          <span>1. Kemanusiaan</span>
-                          <span>2. Kesamaan</span>
-                          <span>3. Kenetralan</span>
-                          <span>4. Kemandirian</span>
-                          <span>5. Kesukarelaan</span>
-                          <span>6. Kesatuan</span>
-                          <span>7. Kesemestaan</span>
+                          {/* 7 Prinsip */}
+                          <div className="p-prinsip-section">
+                            <div className="p-prinsip-heading">7 PRINSIP DASAR GERAKAN PM/BSM</div>
+                            <div className="p-prinsip-pills-grid">
+                              <span>1. Kemanusiaan</span>
+                              <span>2. Kesamaan</span>
+                              <span>3. Kenetralan</span>
+                              <span>4. Kemandirian</span>
+                              <span>5. Kesukarelaan</span>
+                              <span>6. Kesatuan</span>
+                              <span>7. Kesemestaan</span>
+                            </div>
+                          </div>
+
+                          {/* Ketentuan Pemakaian */}
+                          <div className="p-terms-text">
+                            Kartu ini adalah identitas resmi anggota PMR Madya SMPN 8 Balikpapan. Wajib dibawa saat bertugas & kegiatan kemanusiaan.
+                          </div>
+                        </div>
+
+                        {/* Pengesahan / Tanda Tangan */}
+                        <div className="p-back-footer">
+                          <div className="p-sign-block">
+                            <div className="p-sign-city">Balikpapan, {new Date().getFullYear()}</div>
+                            <div className="p-sign-role">{isAlumni ? 'Koordinator Korps Alumni' : 'Pembina PMR Madya'}</div>
+                            <div className="p-sign-line"></div>
+                            <div className="p-sign-school">SMP NEGERI 8 BALIKPAPAN</div>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Ketentuan Pemakaian */}
-                      <div className="p-terms-text">
-                        Kartu ini adalah identitas resmi anggota PMR Madya SMPN 8 Balikpapan. Wajib dibawa saat bertugas & kegiatan kemanusiaan.
-                      </div>
                     </div>
-
-                    {/* Pengesahan / Tanda Tangan */}
-                    <div className="p-back-footer">
-                      <div className="p-sign-block">
-                        <div className="p-sign-city">Balikpapan, {new Date().getFullYear()}</div>
-                        <div className="p-sign-role">{isAlumni ? 'Koordinator Korps Alumni' : 'Pembina PMR Madya'}</div>
-                        <div className="p-sign-line"></div>
-                        <div className="p-sign-school">SMP NEGERI 8 BALIKPAPAN</div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* ACTION BAR */}
                 <div className="kta-action-bar">
-                  <button
-                    type="button"
-                    className={`btn-print-portrait ${isAlumni ? 'btn-alumni-style' : ''}`}
-                    onClick={() => handlePrintCard(userItem.id)}
-                  >
-                    <Printer style={{ width: 15, height: 15 }} />
-                    <span>Cetak Kartu Portrait (Depan & Belakang)</span>
-                  </button>
+                  <div className="kta-btn-cluster">
+                    <button
+                      type="button"
+                      className={`btn-print-portrait btn-print-main ${isAlumni ? 'btn-alumni-style' : ''}`}
+                      onClick={() => handlePrintCard(userItem.id, 'both')}
+                      title="Cetak Sisi Depan & Belakang Sekaligus"
+                    >
+                      <Printer style={{ width: 15, height: 15 }} />
+                      <span>Cetak KTA (Sepasang)</span>
+                    </button>
+                    <div className="kta-btn-subgroup">
+                      <button
+                        type="button"
+                        className="btn-print-sub"
+                        onClick={() => handlePrintCard(userItem.id, 'front')}
+                        title="Cetak Sisi Depan Saja"
+                      >
+                        <CreditCard style={{ width: 13, height: 13, color: isAlumni ? '#4338ca' : '#be123c' }} />
+                        <span>Depan Saja</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-print-sub"
+                        onClick={() => handlePrintCard(userItem.id, 'back')}
+                        title="Cetak Sisi Belakang Saja"
+                      >
+                        <ShieldCheck style={{ width: 13, height: 13, color: isAlumni ? '#4338ca' : '#be123c' }} />
+                        <span>Belakang Saja</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             );

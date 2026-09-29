@@ -12,7 +12,9 @@ import {
   MapPin,
   Clock,
   Trash2,
-  X
+  X,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { canManageAgenda, sanitizeText } from '../../../utils/security';
 
@@ -26,6 +28,17 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
   const [loading, setLoading] = useState(true);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+
+  // Delete Confirmation Modal State
+  const [agendaToDelete, setAgendaToDelete] = useState<AgendaKegiatan | null>(null);
+  const [isDeletingAgenda, setIsDeletingAgenda] = useState(false);
+
+  // Toast State
+  const [toastMsg, setToastMsg] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastMsg({ message, type });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   // Add Agenda Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -85,7 +98,7 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
 
       if (error) throw error;
 
-      alert('Agenda kegiatan berhasil ditambahkan!');
+      showToast('Agenda kegiatan berhasil ditambahkan!', 'success');
       setIsAddModalOpen(false);
       setJudul('');
       setKeterangan('');
@@ -94,22 +107,27 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
       setTampilkanDashboard(false);
       await loadAgendas();
     } catch (err: any) {
-      alert('Gagal menambahkan agenda: ' + err.message);
+      showToast('Gagal menambahkan agenda: ' + err.message, 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteAgenda = async (id: string) => {
+  const handleConfirmDeleteAgenda = async () => {
+    if (!agendaToDelete) return;
     if (!canManage) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus agenda kegiatan ini?')) return;
 
+    setIsDeletingAgenda(true);
     try {
-      const { error } = await supabase.from('agenda_kegiatan').delete().eq('id', id);
+      const { error } = await supabase.from('agenda_kegiatan').delete().eq('id', agendaToDelete.id);
       if (error) throw error;
+      showToast('Agenda kegiatan berhasil dihapus.', 'success');
+      setAgendaToDelete(null);
       await loadAgendas();
     } catch (err: any) {
-      alert('Gagal menghapus: ' + err.message);
+      showToast('Gagal menghapus agenda: ' + err.message, 'error');
+    } finally {
+      setIsDeletingAgenda(false);
     }
   };
 
@@ -189,6 +207,19 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
           </button>
         )}
       </div>
+
+      {toastMsg && (
+        <div className={`presensi-toast-banner ${toastMsg.type}`}>
+          <span>{toastMsg.message}</span>
+          <button
+            type="button"
+            onClick={() => setToastMsg(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 800 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="agenda-main-layout">
         {/* KALENDER VISUAL */}
@@ -426,7 +457,7 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
                     {canManage && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteAgenda(item.id)}
+                        onClick={() => setAgendaToDelete(item)}
                         title="Hapus Agenda"
                         className="btn-agenda-delete"
                       >
@@ -585,6 +616,66 @@ export const KalenderModule: React.FC<KalenderModuleProps> = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE AGENDA CONFIRMATION MODAL */}
+      {agendaToDelete && (
+        <div className="agenda-modal-backdrop" style={{ display: 'flex', zIndex: 99999 }}>
+          <div className="agenda-modal-card" style={{ maxWidth: 440 }}>
+            <div className="agenda-modal-header" style={{ background: '#7f1d1d', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle style={{ width: 18, height: 18, color: '#fca5a5' }} />
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>Konfirmasi Hapus Agenda</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isDeletingAgenda && setAgendaToDelete(null)}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+              >
+                <X style={{ width: 18, height: 18 }} />
+              </button>
+            </div>
+
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
+                Apakah Anda yakin ingin menghapus agenda kegiatan berikut?
+              </p>
+
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div><b style={{ color: '#0f172a', fontSize: 13 }}>{agendaToDelete.judul}</b></div>
+                <div style={{ color: '#64748b' }}>📅 {agendaToDelete.tanggal_mulai} {agendaToDelete.waktu_kegiatan ? `· ⏰ ${agendaToDelete.waktu_kegiatan}` : ''}</div>
+                {agendaToDelete.lokasi && <div style={{ color: '#64748b' }}>📍 {agendaToDelete.lokasi}</div>}
+              </div>
+            </div>
+
+            <div className="agenda-modal-footer">
+              <button
+                type="button"
+                onClick={() => setAgendaToDelete(null)}
+                disabled={isDeletingAgenda}
+                style={{ background: '#e2e8f0', color: '#333', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAgenda}
+                disabled={isDeletingAgenda}
+                style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                {isDeletingAgenda ? (
+                  <>
+                    <Loader2 className="spin-anim" style={{ width: 14, height: 14 }} /> Menghapus...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 style={{ width: 14, height: 14 }} /> Ya, Hapus Agenda
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

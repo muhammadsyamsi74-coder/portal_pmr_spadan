@@ -161,7 +161,7 @@ export function isAdmin(profile: UserProfile | null): boolean {
   if (!profile || isNonAktif(profile)) return false;
   const role = (profile.jabatan || '').toLowerCase();
   const ket = (profile.keterangan_jabatan || '').toLowerCase();
-  return role === 'admin' || ket.includes('pembina');
+  return role === 'admin' || ket.includes('pembina') || ket.includes('kepala sekolah');
 }
 
 export function isPengurus(profile: UserProfile | null): boolean {
